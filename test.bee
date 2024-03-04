@@ -1,0 +1,13 @@
+fn main() {
+  // type annotation should be optional here
+  let one: Int = 1
+  let five = one + 4
+  let itest = five - 4 
+
+  // type annotation should be optional here
+  let stest: String = "this is a string"
+  let stest_concat= "is " <> stest
+
+  print_string(stest_concat)
+  print_integer(itest)
+}
