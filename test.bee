@@ -1,10 +1,10 @@
 fn main() {
   let one: Int = 1
-  let five = one + 4
-  let itest = five - 4 
+  let five: Int = one + 4
+  let itest: Int = five - 4 
 
   let stest: String = "this is a string"
-  let stest_concat= "is " <> stest
+  let stest_concat: String = "is " <> stest
 
   print_string(stest_concat)
   print_integer(itest)
