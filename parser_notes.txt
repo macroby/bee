@@ -1,6 +1,0 @@
-Parsing: Parsing is the process of analyzing the stream of 
-tokens according to the rules of the language's grammar. 
-This involves recognizing the relationships between tokens 
-and grouping them into higher-level constructs such as expressions, 
-statements, function declarations, etc. 
-The output of this stage is the AST.

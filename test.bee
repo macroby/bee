@@ -1,7 +1,7 @@
 fn main() {
-  let one: Int = 1
-  let five: Int = one + 4
-  let itest: Int = five - 4 
+  let one: Integer = 1
+  let five: Integer = one + 4
+  let itest: Integer = five - 4 
 
   let stest: String = "this is a string"
   let stest_concat: String = "is " <> stest
