@@ -1,11 +1,8 @@
 fn main() {
   let one: Integer = 1
+  let one_again: Integer = one
   let five: Integer = one + 4
   let itest: Integer = five - 4 
 
-  let stest: String = "this is a string"
-  let stest_concat: String = "is " <> stest
-
-  print_string(stest_concat)
   print_integer(itest)
 }

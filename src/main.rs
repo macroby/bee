@@ -10,8 +10,199 @@ fn main() {
         variables: Vec::new(),
         functions: Vec::new(),
     };
-    analyze(ast, &mut symbol_table);
+    analyze(ast.clone(), &mut symbol_table);
     println!("{:?}", symbol_table);
+
+    let mut op_codes = Vec::new();
+    code_gen(ast.clone(), &mut symbol_table, &mut op_codes);
+
+    for op_code in op_codes {
+        println!("{:?}", op_code);
+    }
+}
+
+fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &mut Vec<OpCode>) {
+    match ast {
+        AbstractSyntaxTree::Let {
+            name,
+            type_annot: _,
+            value,
+        } => match *value {
+            AbstractSyntaxTree::Name { name } => {
+                let variable = symbol_table.variables.iter().find(|v| v.name == name);
+                match variable {
+                    Some(v) => {
+                        op_codes.push(OpCode {
+                            name: OpCodeName::Load,
+                            args: vec!["1".to_string(), v.name.clone()],
+                        });
+                        op_codes.push(OpCode {
+                            name: OpCodeName::Store,
+                            args: vec![name.clone(), "1".to_string()],
+                        });
+                    }
+                    None => panic!("Variable not found"),
+                }
+            }
+            AbstractSyntaxTree::Int { value } => {
+                op_codes.push(OpCode {
+                    name: OpCodeName::StoreImm,
+                    args: vec![name.clone(), value.to_string()],
+                });
+            }
+            AbstractSyntaxTree::Minus { left, right } => {
+                match *left {
+                    AbstractSyntaxTree::Int { value } => {
+                        op_codes.push(OpCode {
+                            name: OpCodeName::LoadImm,
+                            args: vec!["1".to_string(), value.to_string()],
+                        });
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let variable = symbol_table.variables.iter().find(|v| v.name == name);
+                        match variable {
+                            Some(v) => {
+                                op_codes.push(OpCode {
+                                    name: OpCodeName::Load,
+                                    args: vec!["1".to_string(), v.name.clone()],
+                                });
+                            }
+                            None => panic!("Variable not found"),
+                        }
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                match *right {
+                    AbstractSyntaxTree::Int { value } => {
+                        op_codes.push(OpCode {
+                            name: OpCodeName::LoadImm,
+                            args: vec!["2".to_string(), value.to_string()],
+                        });
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let variable = symbol_table.variables.iter().find(|v| v.name == name);
+                        match variable {
+                            Some(v) => {
+                                op_codes.push(OpCode {
+                                    name: OpCodeName::Load,
+                                    args: vec!["2".to_string(), v.name.clone()],
+                                });
+                            }
+                            None => panic!("Variable not found"),
+                        }
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                op_codes.push(OpCode {
+                    name: OpCodeName::Sub,
+                    args: vec!["3".to_string(), "1".to_string(), "2".to_string()],
+                });
+
+                op_codes.push(OpCode {
+                    name: OpCodeName::Store,
+                    args: vec![name.clone(), "3".to_string()],
+                });
+            }
+            AbstractSyntaxTree::Plus { left, right } => {
+                match *left {
+                    AbstractSyntaxTree::Int { value } => {
+                        op_codes.push(OpCode {
+                            name: OpCodeName::LoadImm,
+                            args: vec!["1".to_string(), value.to_string()],
+                        });
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let variable = symbol_table.variables.iter().find(|v| v.name == name);
+                        match variable {
+                            Some(v) => {
+                                op_codes.push(OpCode {
+                                    name: OpCodeName::Load,
+                                    args: vec!["1".to_string(), v.name.clone()],
+                                });
+                            }
+                            None => panic!("Variable not found"),
+                        }
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                match *right {
+                    AbstractSyntaxTree::Int { value } => {
+                        op_codes.push(OpCode {
+                            name: OpCodeName::LoadImm,
+                            args: vec!["2".to_string(), value.to_string()],
+                        });
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let variable = symbol_table.variables.iter().find(|v| v.name == name);
+                        match variable {
+                            Some(v) => {
+                                op_codes.push(OpCode {
+                                    name: OpCodeName::Load,
+                                    args: vec!["2".to_string(), v.name.clone()],
+                                });
+                            }
+                            None => panic!("Variable not found"),
+                        }
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                op_codes.push(OpCode {
+                    name: OpCodeName::Add,
+                    args: vec!["3".to_string(), "1".to_string(), "2".to_string()],
+                });
+
+                op_codes.push(OpCode {
+                    name: OpCodeName::Store,
+                    args: vec![name.clone(), "3".to_string()],
+                });
+            }
+            _ => panic!("Invalid value"),
+        },
+        AbstractSyntaxTree::Fn { name, body } => {
+            symbol_table.functions.push(Function { name: name.clone() });
+            for statement in *body {
+                code_gen(statement, symbol_table, op_codes);
+            }
+        }
+        AbstractSyntaxTree::Block { statements } => {
+            for statement in statements {
+                code_gen(statement, symbol_table, op_codes);
+            }
+        }
+        AbstractSyntaxTree::Call { name, args } => {
+            if name == "print_integer" {
+                match args.first() {
+                    Some(arg) => match arg {
+                        AbstractSyntaxTree::Int { value } => {
+                            op_codes.push(OpCode {
+                                name: OpCodeName::Printi,
+                                args: vec![value.to_string()],
+                            });
+                        }
+                        AbstractSyntaxTree::Name { name } => {
+                            op_codes.push(OpCode {
+                                name: OpCodeName::Load,
+                                args: vec!["1".to_string(), name.clone()],
+                            });
+                            op_codes.push(OpCode {
+                                name: OpCodeName::Print,
+                                args: vec!["1".to_string()],
+                            });
+                        }
+                        _ => panic!("Invalid value"),
+                    },
+                    None => panic!("No args"),
+                }
+            }
+        }
+        _ => {
+            panic!("Invalid code");
+        }
+    }
 }
 
 fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
@@ -49,7 +240,7 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                         _ => panic!("Invalid type"),
                     }
                     match *left {
-                        AbstractSyntaxTree::Int { value } => {
+                        AbstractSyntaxTree::Int { value: _ } => {
                             if type_annot != "Integer" {
                                 panic!("Type mismatch");
                             }
@@ -112,7 +303,7 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                         _ => panic!("Invalid value"),
                     }
                     match *right {
-                        AbstractSyntaxTree::Int { value } => {
+                        AbstractSyntaxTree::Int { value: _ } => {
                             if type_annot != "Integer" {
                                 panic!("Type mismatch");
                             }
@@ -156,7 +347,7 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                         _ => panic!("Invalid value"),
                     }
                     match *right {
-                        AbstractSyntaxTree::String { value } => {
+                        AbstractSyntaxTree::String { value: _ } => {
                             if type_annot != "String" {
                                 panic!("Type mismatch");
                             }
@@ -465,6 +656,27 @@ fn lex(source: String) -> Vec<Token> {
     tokens
 }
 
+// this should be written as an enum with the arguements for each opcode type explicitly defined
+#[derive(Debug)]
+struct OpCode {
+    name: OpCodeName,
+    args: Vec<String>,
+}
+
+#[derive(Debug)]
+enum OpCodeName {
+    Add,
+    Sub,
+    Load,
+    LoadImm,
+    Move,
+    Store,
+    StoreImm,
+    Print,
+    Printi,
+    Halt,
+}
+
 #[derive(Debug)]
 struct SymbolTable {
     variables: Vec<Variable>,
@@ -480,7 +692,7 @@ struct Function {
     name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum AbstractSyntaxTree {
     // Statements
     Let {
