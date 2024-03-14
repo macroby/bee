@@ -1,23 +1,89 @@
 use core::panic;
-use std::fs;
+use std::{collections::HashMap, fs};
 
 fn main() {
     let contents = fs::read_to_string("test.bee").expect("Should have been able to read the file");
     let tokens = lex(contents.clone());
     let ast = parse(tokens);
+    println!("AST:");
     println!("{:?}", ast);
     let mut symbol_table = SymbolTable {
         variables: Vec::new(),
         functions: Vec::new(),
     };
     analyze(ast.clone(), &mut symbol_table);
+    println!("Symbol Table:");
     println!("{:?}", symbol_table);
 
     let mut op_codes = Vec::new();
     code_gen(ast.clone(), &mut symbol_table, &mut op_codes);
 
-    for op_code in op_codes {
+    println!("Codegen Output:");
+    for op_code in op_codes.clone() {
         println!("{:?}", op_code);
+    }
+
+    println!("Interpretation:");
+    interpret(op_codes);
+}
+
+fn interpret(op_codes: Vec<OpCode>) {
+    let mut registers = [0; 32];
+    let mut variables: HashMap<String, usize> = HashMap::new();
+    let mut pc = 0;
+    loop {
+        let op_code = &op_codes[pc];
+        match op_code.name {
+            OpCodeName::Add => {
+                let arg1 = op_code.args[0].parse::<usize>().unwrap();
+                let arg2 = op_code.args[1].parse::<usize>().unwrap();
+                let arg3 = op_code.args[2].parse::<usize>().unwrap();
+                registers[arg1] = registers[arg2] + registers[arg3];
+            }
+            OpCodeName::Sub => {
+                let arg1 = op_code.args[0].parse::<usize>().unwrap();
+                let arg2 = op_code.args[1].parse::<usize>().unwrap();
+                let arg3 = op_code.args[2].parse::<usize>().unwrap();
+                registers[arg1] = registers[arg2] - registers[arg3];
+            }
+            OpCodeName::Load => {
+                let arg1 = op_code.args[0].parse::<usize>().unwrap();
+                let arg2 = &op_code.args[1];
+                registers[arg1] = *variables.get(arg2).unwrap();
+            }
+            OpCodeName::LoadImm => {
+                let arg1 = op_code.args[0].parse::<usize>().unwrap();
+                let arg2 = op_code.args[1].parse::<usize>().unwrap();
+                registers[arg1] = arg2;
+            }
+            OpCodeName::Move => {
+                let arg1 = op_code.args[0].parse::<usize>().unwrap();
+                let arg2 = op_code.args[1].parse::<usize>().unwrap();
+                registers[arg1] = registers[arg2];
+            }
+            OpCodeName::Store => {
+                let arg1 = &op_code.args[0];
+                let arg2 = op_code.args[1].parse::<usize>().unwrap();
+                variables.insert(arg1.to_string(), registers[arg2]);
+            }
+            OpCodeName::StoreImm => {
+                let arg1 = &op_code.args[0];
+                let arg2 = op_code.args[1].parse().unwrap();
+                variables.insert(arg1.to_string(), arg2);
+            }
+            OpCodeName::Print => {
+                let arg1 = op_code.args[0].parse::<usize>().unwrap();
+                println!("{}", registers[arg1]);
+            }
+            OpCodeName::Printi => {
+                let arg1 = op_code.args[0].parse::<usize>().unwrap();
+                println!("{}", registers[arg1]);
+            }
+            OpCodeName::Halt => {
+                break;
+            }
+        }
+        pc += 1;
     }
 }
 
@@ -28,21 +94,16 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
             type_annot: _,
             value,
         } => match *value {
-            AbstractSyntaxTree::Name { name } => {
-                let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                match variable {
-                    Some(v) => {
-                        op_codes.push(OpCode {
-                            name: OpCodeName::Load,
-                            args: vec!["1".to_string(), v.name.clone()],
-                        });
-                        op_codes.push(OpCode {
-                            name: OpCodeName::Store,
-                            args: vec![name.clone(), "1".to_string()],
-                        });
-                    }
-                    None => panic!("Variable not found"),
-                }
+            AbstractSyntaxTree::Name { name: var_name } => {
+                println!("{:?}", name);
+                op_codes.push(OpCode {
+                    name: OpCodeName::Load,
+                    args: vec!["1".to_string(), var_name.clone()],
+                });
+                op_codes.push(OpCode {
+                    name: OpCodeName::Store,
+                    args: vec![name.clone(), "1".to_string()],
+                });
             }
             AbstractSyntaxTree::Int { value } => {
                 op_codes.push(OpCode {
@@ -172,6 +233,10 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
             for statement in statements {
                 code_gen(statement, symbol_table, op_codes);
             }
+            op_codes.push(OpCode {
+                name: OpCodeName::Halt,
+                args: vec![],
+            });
         }
         AbstractSyntaxTree::Call { name, args } => {
             if name == "print_integer" {
@@ -657,13 +722,13 @@ fn lex(source: String) -> Vec<Token> {
 }
 
 // this should be written as an enum with the arguements for each opcode type explicitly defined
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct OpCode {
     name: OpCodeName,
     args: Vec<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum OpCodeName {
     Add,
     Sub,
