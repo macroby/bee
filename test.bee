@@ -2,7 +2,9 @@ fn main() {
   let one: Integer = 1
   let one_again: Integer = one
   let five: Integer = one + 4
-  let itest: Integer = five - 4 
+  let itest: Integer = five - 4
+
+  let btest: Bool = True
 
   print_integer(itest)
 }

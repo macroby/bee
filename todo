@@ -1,3 +1,4 @@
+- Use integers to reference variables in bytecode
 - Implement Bools
 - Seperate Local Variables from Constants
 - Create a new type to reprsent the value of a variable
