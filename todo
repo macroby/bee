@@ -1,5 +1,3 @@
-- Use integers to reference variables in bytecode
-- Implement Bools
 - Seperate Local Variables from Constants
 - Create a new type to reprsent the value of a variable
 - Implement Main function logic(look for main function in the code and run it in interpreter)
