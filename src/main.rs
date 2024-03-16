@@ -10,6 +10,7 @@ fn main() {
     let mut symbol_table = SymbolTable {
         variables: Vec::new(),
         functions: Vec::new(),
+        constants: Vec::new(),
     };
     analyze(ast.clone(), &mut symbol_table);
     println!("Symbol Table:");
@@ -75,10 +76,6 @@ fn interpret(op_codes: Vec<OpCode>) {
                 let arg1 = op_code.args[0];
                 println!("{}", registers[arg1]);
             }
-            OpCodeName::Printi => {
-                let arg1 = op_code.args[0];
-                println!("{}", registers[arg1]);
-            }
             OpCodeName::Halt => {
                 break;
             }
@@ -89,30 +86,56 @@ fn interpret(op_codes: Vec<OpCode>) {
 
 fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &mut Vec<OpCode>) {
     match ast {
+        AbstractSyntaxTree::Const { .. } => {}
         AbstractSyntaxTree::Let {
             name,
             type_annot: _,
             value,
         } => match *value {
-            AbstractSyntaxTree::Name { name: var_name } => {
-                let var_index = symbol_table
-                    .variables
+            AbstractSyntaxTree::Name {
+                name: var_or_const_name,
+            } => {
+                match symbol_table
+                    .constants
                     .iter()
-                    .position(|v| v.name == var_name)
-                    .unwrap();
-                let target_index = symbol_table
-                    .variables
-                    .iter()
-                    .position(|v| v.name == name)
-                    .unwrap();
-                op_codes.push(OpCode {
-                    name: OpCodeName::Load,
-                    args: vec![1, var_index],
-                });
-                op_codes.push(OpCode {
-                    name: OpCodeName::Store,
-                    args: vec![target_index, 1],
-                });
+                    .find(|v| v.name == var_or_const_name)
+                {
+                    Some(constant) => {
+                        let target_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == name)
+                            .unwrap();
+                        op_codes.push(OpCode {
+                            name: OpCodeName::LoadImm,
+                            args: vec![1, constant.value.parse().unwrap()],
+                        });
+                        op_codes.push(OpCode {
+                            name: OpCodeName::Store,
+                            args: vec![target_index, 1],
+                        });
+                    }
+                    None => {
+                        let var_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == var_or_const_name)
+                            .unwrap();
+                        let target_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == name)
+                            .unwrap();
+                        op_codes.push(OpCode {
+                            name: OpCodeName::Load,
+                            args: vec![1, var_index],
+                        });
+                        op_codes.push(OpCode {
+                            name: OpCodeName::Store,
+                            args: vec![target_index, 1],
+                        });
+                    }
+                }
             }
             AbstractSyntaxTree::UpName { name: upname } => match upname.as_str() {
                 "True" => {
@@ -291,24 +314,38 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                     Some(arg) => match arg {
                         AbstractSyntaxTree::Int { value } => {
                             op_codes.push(OpCode {
-                                name: OpCodeName::Printi,
+                                name: OpCodeName::Print,
                                 args: vec![*value as usize],
                             });
                         }
                         AbstractSyntaxTree::Name { name } => {
-                            let var_index = symbol_table
-                                .variables
-                                .iter()
-                                .position(|v| v.name == *name)
-                                .unwrap();
-                            op_codes.push(OpCode {
-                                name: OpCodeName::Load,
-                                args: vec![1, var_index],
-                            });
-                            op_codes.push(OpCode {
-                                name: OpCodeName::Print,
-                                args: vec![1],
-                            });
+                            match symbol_table.constants.iter().find(|v| v.name == *name) {
+                                Some(constant) => {
+                                    op_codes.push(OpCode {
+                                        name: OpCodeName::LoadImm,
+                                        args: vec![1, constant.value.parse().unwrap()],
+                                    });
+                                    op_codes.push(OpCode {
+                                        name: OpCodeName::Print,
+                                        args: vec![1],
+                                    });
+                                }
+                                None => {
+                                    let var_index = symbol_table
+                                        .variables
+                                        .iter()
+                                        .position(|v| v.name == *name)
+                                        .unwrap();
+                                    op_codes.push(OpCode {
+                                        name: OpCodeName::Load,
+                                        args: vec![1, var_index],
+                                    });
+                                    op_codes.push(OpCode {
+                                        name: OpCodeName::Print,
+                                        args: vec![1],
+                                    });
+                                }
+                            }
                         }
                         _ => panic!("Invalid value"),
                     },
@@ -324,6 +361,46 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
 
 fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
     match ast {
+        AbstractSyntaxTree::Const {
+            name,
+            type_annot,
+            value,
+        } => match *value {
+            AbstractSyntaxTree::Int { value: int_value } => {
+                if type_annot != "Integer" {
+                    panic!("Type mismatch");
+                }
+                symbol_table.constants.push(Constant {
+                    name: name.clone(),
+                    type_annot: type_annot.clone(),
+                    value: int_value.to_string(),
+                });
+            }
+            AbstractSyntaxTree::String {
+                value: string_value,
+            } => {
+                if type_annot != "String" {
+                    panic!("Type mismatch");
+                }
+                symbol_table.constants.push(Constant {
+                    name: name.clone(),
+                    type_annot: type_annot.clone(),
+                    value: string_value.clone(),
+                });
+            }
+            AbstractSyntaxTree::UpName { name: bool_name } => {
+                if type_annot == "Bool" && (bool_name == "True" || bool_name == "False") {
+                } else {
+                    panic!("Type mismatch");
+                }
+                symbol_table.constants.push(Constant {
+                    name: name.clone(),
+                    type_annot: type_annot.clone(),
+                    value: bool_name.clone(),
+                });
+            }
+            _ => panic!("Invalid value"),
+        },
         AbstractSyntaxTree::Let {
             name,
             type_annot,
@@ -528,6 +605,29 @@ fn parse(tokens: Vec<Token>) -> AbstractSyntaxTree {
     let mut statements = Vec::new();
     while let Some(token) = tokens.next() {
         match token {
+            Token::Const => {
+                let name = match tokens.next() {
+                    Some(Token::Name { name }) => name,
+                    _ => panic!("Expected a name after const"),
+                };
+                let type_annotation: String = match tokens.next() {
+                    Some(Token::Colon) => match tokens.next() {
+                        Some(Token::UpName { name }) => name.clone(),
+                        _ => panic!("Expected a type annotation after colon"),
+                    },
+                    _ => panic!("Expected a colon after value name"),
+                };
+                match tokens.next() {
+                    Some(Token::Equal) => {}
+                    _ => panic!("Expected an equal sign after type annotation"),
+                }
+                let value = parse_expression(&mut tokens);
+                statements.push(AbstractSyntaxTree::Const {
+                    name: name.clone(),
+                    type_annot: type_annotation.clone(),
+                    value: Box::new(value),
+                });
+            }
             Token::Fn => {
                 let name = match tokens.next() {
                     Some(Token::Name { name }) => name,
@@ -722,6 +822,7 @@ fn lex(source: String) -> Vec<Token> {
                     }
                 }
                 match name.as_str() {
+                    "const" => tokens.push(Token::Const),
                     "fn" => tokens.push(Token::Fn),
                     "let" => tokens.push(Token::Let),
                     _ => {
@@ -796,7 +897,6 @@ enum OpCodeName {
     Store,
     StoreImm,
     Print,
-    Printi,
     Halt,
 }
 
@@ -804,6 +904,13 @@ enum OpCodeName {
 struct SymbolTable {
     variables: Vec<Variable>,
     functions: Vec<Function>,
+    constants: Vec<Constant>,
+}
+#[derive(Debug)]
+struct Constant {
+    name: String,
+    type_annot: String,
+    value: String,
 }
 #[derive(Debug)]
 struct Variable {
@@ -818,6 +925,11 @@ struct Function {
 #[derive(Debug, Clone)]
 enum AbstractSyntaxTree {
     // Statements
+    Const {
+        name: String,
+        type_annot: String,
+        value: Box<AbstractSyntaxTree>,
+    },
     Let {
         name: String,
         type_annot: String,
@@ -863,9 +975,6 @@ enum AbstractSyntaxTree {
     Block {
         statements: Vec<AbstractSyntaxTree>,
     },
-    // Invalid code tokens
-    UnterminatedString(String),
-    UnexpectedGrapheme(String),
 }
 
 #[derive(Debug)]
@@ -888,6 +997,7 @@ enum Token {
     Colon,
     Equal,
     // Keywords (alphabetically):
+    Const,
     Fn,
     Let,
 
