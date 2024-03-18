@@ -41,6 +41,15 @@ fn interpret(op_codes: Vec<OpCode>) {
             OpCode::Sub { arg1, arg2, arg3 } => {
                 registers[*arg1] = registers[*arg2] - registers[*arg3];
             }
+            OpCode::And { arg1, arg2, arg3 } => {
+                registers[*arg1] = registers[*arg2] & registers[*arg3];
+            }
+            OpCode::Or { arg1, arg2, arg3 } => {
+                registers[*arg1] = registers[*arg2] | registers[*arg3];
+            }
+            OpCode::Not { value } => {
+                registers[*value] = registers[*value] ^ 1;
+            }
             OpCode::Load { arg1, arg2 } => {
                 registers[*arg1] = *variables.get(&arg2).unwrap();
             }
@@ -276,7 +285,177 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                     arg2: 3,
                 });
             }
-            _ => panic!("Invalid value"),
+            AbstractSyntaxTree::And { left, right } => {
+                match *left {
+                    AbstractSyntaxTree::UpName { name } => {
+                        if name == "True" {
+                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 1 });
+                        } else if name == "False" {
+                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 0 });
+                        } else {
+                            panic!("Invalid value");
+                        }
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let var_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == name)
+                            .unwrap();
+                        op_codes.push(OpCode::Load {
+                            arg1: 1,
+                            arg2: var_index,
+                        });
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                match *right {
+                    AbstractSyntaxTree::UpName { name } => {
+                        if name == "True" {
+                            op_codes.push(OpCode::LoadImm { arg1: 2, arg2: 1 });
+                        } else if name == "False" {
+                            op_codes.push(OpCode::LoadImm { arg1: 2, arg2: 0 });
+                        } else {
+                            panic!("Invalid value");
+                        }
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let var_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == name)
+                            .unwrap();
+                        op_codes.push(OpCode::Load {
+                            arg1: 2,
+                            arg2: var_index,
+                        });
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                op_codes.push(OpCode::And {
+                    arg1: 3,
+                    arg2: 1,
+                    arg3: 2,
+                });
+
+                let target_index = symbol_table
+                    .variables
+                    .iter()
+                    .position(|v| v.name == name)
+                    .unwrap();
+
+                op_codes.push(OpCode::Store {
+                    arg1: target_index,
+                    arg2: 3,
+                });
+            }
+            AbstractSyntaxTree::Or { left, right } => {
+                match *left {
+                    AbstractSyntaxTree::UpName { name } => {
+                        if name == "True" {
+                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 1 });
+                        } else if name == "False" {
+                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 0 });
+                        } else {
+                            panic!("Invalid value");
+                        }
+                    }
+                    AbstractSyntaxTree::Name { name: var_name } => {
+                        let var_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == var_name)
+                            .unwrap();
+                        op_codes.push(OpCode::Load {
+                            arg1: 1,
+                            arg2: var_index,
+                        });
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                match *right {
+                    AbstractSyntaxTree::UpName { name } => {
+                        if name == "True" {
+                            op_codes.push(OpCode::LoadImm { arg1: 2, arg2: 1 });
+                        } else if name == "False" {
+                            op_codes.push(OpCode::LoadImm { arg1: 2, arg2: 0 });
+                        } else {
+                            panic!("Invalid value");
+                        }
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let var_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == name)
+                            .unwrap();
+                        op_codes.push(OpCode::Load {
+                            arg1: 2,
+                            arg2: var_index,
+                        });
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                op_codes.push(OpCode::Or {
+                    arg1: 3,
+                    arg2: 1,
+                    arg3: 2,
+                });
+
+                let target_index = symbol_table
+                    .variables
+                    .iter()
+                    .position(|v| v.name == name)
+                    .unwrap();
+
+                op_codes.push(OpCode::Store {
+                    arg1: target_index,
+                    arg2: 3,
+                });
+            }
+            AbstractSyntaxTree::Not { value } => {
+                match *value {
+                    AbstractSyntaxTree::UpName { name } => {
+                        if name == "True" {
+                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 1 });
+                        } else if name == "False" {
+                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 0 });
+                        } else {
+                            panic!("Invalid value");
+                        }
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let var_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == name)
+                            .unwrap();
+                        op_codes.push(OpCode::Load {
+                            arg1: 1,
+                            arg2: var_index,
+                        });
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                op_codes.push(OpCode::Not { value: 1 });
+
+                let target_index = symbol_table
+                    .variables
+                    .iter()
+                    .position(|v| v.name == name)
+                    .unwrap();
+
+                op_codes.push(OpCode::Store {
+                    arg1: target_index,
+                    arg2: 1,
+                });
+            }
+            value => panic!("Invalid value: {:?}", value),
         },
         AbstractSyntaxTree::Fn { name, body } => {
             symbol_table.functions.push(Function { name: name.clone() });
@@ -290,44 +469,81 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
             }
             op_codes.push(OpCode::Halt);
         }
-        AbstractSyntaxTree::Call { name, args } => {
-            if name == "print_integer" {
-                match args.first() {
-                    Some(arg) => match arg {
-                        AbstractSyntaxTree::Int { value } => {
-                            op_codes.push(OpCode::Print {
-                                arg1: *value as usize,
-                            });
-                        }
-                        AbstractSyntaxTree::Name { name } => {
-                            match symbol_table.constants.iter().find(|v| v.name == *name) {
-                                Some(constant) => {
-                                    op_codes.push(OpCode::LoadImm {
-                                        arg1: 1,
-                                        arg2: constant.value.parse().unwrap(),
-                                    });
-                                    op_codes.push(OpCode::Print { arg1: 1 });
-                                }
-                                None => {
-                                    let var_index = symbol_table
-                                        .variables
-                                        .iter()
-                                        .position(|v| v.name == *name)
-                                        .unwrap();
-                                    op_codes.push(OpCode::Load {
-                                        arg1: 1,
-                                        arg2: var_index,
-                                    });
-                                    op_codes.push(OpCode::Print { arg1: 1 });
-                                }
+        AbstractSyntaxTree::Call { name, args } => match name.as_str() {
+            "print_integer" => match args.first() {
+                Some(arg) => match arg {
+                    AbstractSyntaxTree::Int { value } => {
+                        op_codes.push(OpCode::Print {
+                            arg1: *value as usize,
+                        });
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        match symbol_table.constants.iter().find(|v| v.name == *name) {
+                            Some(constant) => {
+                                op_codes.push(OpCode::LoadImm {
+                                    arg1: 1,
+                                    arg2: constant.value.parse().unwrap(),
+                                });
+                                op_codes.push(OpCode::Print { arg1: 1 });
                             }
+                            None => {
+                                let var_index = symbol_table
+                                    .variables
+                                    .iter()
+                                    .position(|v| v.name == *name)
+                                    .unwrap();
+                                op_codes.push(OpCode::Load {
+                                    arg1: 1,
+                                    arg2: var_index,
+                                });
+                                op_codes.push(OpCode::Print { arg1: 1 });
+                            }
+                        }
+                    }
+                    _ => panic!("Invalid value"),
+                },
+                None => panic!("No args"),
+            },
+            "print_bool" => match args.first() {
+                Some(arg) => match arg {
+                    AbstractSyntaxTree::UpName { name } => match name.as_str() {
+                        "True" => {
+                            op_codes.push(OpCode::Print { arg1: 1 });
+                        }
+                        "False" => {
+                            op_codes.push(OpCode::Print { arg1: 0 });
                         }
                         _ => panic!("Invalid value"),
                     },
-                    None => panic!("No args"),
-                }
-            }
-        }
+                    AbstractSyntaxTree::Name { name } => {
+                        match symbol_table.constants.iter().find(|v| v.name == *name) {
+                            Some(constant) => {
+                                op_codes.push(OpCode::LoadImm {
+                                    arg1: 1,
+                                    arg2: constant.value.parse().unwrap(),
+                                });
+                                op_codes.push(OpCode::Print { arg1: 1 });
+                            }
+                            None => {
+                                let var_index = symbol_table
+                                    .variables
+                                    .iter()
+                                    .position(|v| v.name == *name)
+                                    .unwrap();
+                                op_codes.push(OpCode::Load {
+                                    arg1: 1,
+                                    arg2: var_index,
+                                });
+                                op_codes.push(OpCode::Print { arg1: 1 });
+                            }
+                        }
+                    }
+                    _ => panic!("Invalid value"),
+                },
+                None => panic!("No args"),
+            },
+            _ => panic!("Invalid function name"),
+        },
         _ => {
             panic!("Invalid code");
         }
@@ -541,6 +757,76 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                         _ => panic!("Invalid value"),
                     }
                 }
+                AbstractSyntaxTree::And { left, right }
+                | AbstractSyntaxTree::Or { left, right } => {
+                    match type_annot.as_str() {
+                        "Bool" => (),
+                        _ => panic!("Invalid type"),
+                    }
+                    match *left {
+                        AbstractSyntaxTree::UpName { name } => {
+                            if name != "True" && name != "False" {
+                                panic!("Invalid value");
+                            }
+                        }
+                        AbstractSyntaxTree::Name { name } => {
+                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
+                            match variable {
+                                Some(v) => {
+                                    if v.type_annot != type_annot {
+                                        panic!("Type mismatch");
+                                    }
+                                }
+                                None => panic!("Variable not found"),
+                            }
+                        }
+                        _ => panic!("Invalid value"),
+                    }
+                    match *right {
+                        AbstractSyntaxTree::UpName { name } => {
+                            if name != "True" && name != "False" {
+                                panic!("Invalid value");
+                            }
+                        }
+                        AbstractSyntaxTree::Name { name } => {
+                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
+                            match variable {
+                                Some(v) => {
+                                    if v.type_annot != type_annot {
+                                        panic!("Type mismatch");
+                                    }
+                                }
+                                None => panic!("Variable not found"),
+                            }
+                        }
+                        _ => panic!("Invalid value"),
+                    }
+                }
+                AbstractSyntaxTree::Not { value } => {
+                    match type_annot.as_str() {
+                        "Bool" => (),
+                        _ => panic!("Invalid type"),
+                    }
+                    match *value {
+                        AbstractSyntaxTree::UpName { name } => {
+                            if name != "True" && name != "False" {
+                                panic!("Invalid value");
+                            }
+                        }
+                        AbstractSyntaxTree::Name { name } => {
+                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
+                            match variable {
+                                Some(v) => {
+                                    if v.type_annot != type_annot {
+                                        panic!("Type mismatch");
+                                    }
+                                }
+                                None => panic!("Variable not found"),
+                            }
+                        }
+                        _ => panic!("Invalid value"),
+                    }
+                }
                 _ => panic!("Invalid value"),
             }
             symbol_table.variables.push(Variable {
@@ -570,6 +856,17 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
         AbstractSyntaxTree::LtGt { left, right } => {
             analyze(*left, symbol_table);
             analyze(*right, symbol_table);
+        }
+        AbstractSyntaxTree::And { left, right } => {
+            analyze(*left, symbol_table);
+            analyze(*right, symbol_table);
+        }
+        AbstractSyntaxTree::Or { left, right } => {
+            analyze(*left, symbol_table);
+            analyze(*right, symbol_table);
+        }
+        AbstractSyntaxTree::Not { value } => {
+            analyze(*value, symbol_table);
         }
         _ => {}
     }
@@ -702,6 +999,12 @@ fn parse_expression(
         Some(Token::String { value }) => AbstractSyntaxTree::String {
             value: value.clone(),
         },
+        Some(Token::Not) => {
+            let value = parse_expression(tokens);
+            AbstractSyntaxTree::Not {
+                value: Box::new(value),
+            }
+        }
         Some(Token::Name { name }) => AbstractSyntaxTree::Name { name: name.clone() },
         Some(Token::UpName { name }) => AbstractSyntaxTree::UpName { name: name.clone() },
         Some(Token::LeftParen) => parse_expression(tokens),
@@ -720,8 +1023,8 @@ fn parse_expression(
             AbstractSyntaxTree::Block { statements }
         }
         None => panic!("Unexpected end of input"),
-        Some(_) => {
-            panic!("Unexpected token")
+        Some(token) => {
+            panic!("Unexpected token: {:?}", token)
         }
     };
     while let Some(token) = tokens.peek() {
@@ -748,6 +1051,29 @@ fn parse_expression(
                 left = AbstractSyntaxTree::LtGt {
                     left: Box::new(left),
                     right: Box::new(right),
+                };
+            }
+            Token::And => {
+                tokens.next();
+                let right = parse_expression(tokens);
+                left = AbstractSyntaxTree::And {
+                    left: Box::new(left),
+                    right: Box::new(right),
+                };
+            }
+            Token::Or => {
+                tokens.next();
+                let right = parse_expression(tokens);
+                left = AbstractSyntaxTree::Or {
+                    left: Box::new(left),
+                    right: Box::new(right),
+                };
+            }
+            Token::Not => {
+                tokens.next();
+                let value = parse_expression(tokens);
+                left = AbstractSyntaxTree::Not {
+                    value: Box::new(value),
                 };
             }
             _ => break,
@@ -780,6 +1106,22 @@ fn lex(source: String) -> Vec<Token> {
                 }
                 _ => tokens.push(Token::UnexpectedGrapheme(c.to_string())),
             },
+            // Boolean Operators
+            '&' => match source.peek() {
+                Some(&'&') => {
+                    source.next();
+                    tokens.push(Token::And);
+                }
+                _ => tokens.push(Token::UnexpectedGrapheme(c.to_string())),
+            },
+            '|' => match source.peek() {
+                Some(&'|') => {
+                    source.next();
+                    tokens.push(Token::Or);
+                }
+                _ => tokens.push(Token::UnexpectedGrapheme(c.to_string())),
+            },
+            '!' => tokens.push(Token::Not),
             // Other Punctuation
             ':' => tokens.push(Token::Colon),
             '=' => tokens.push(Token::Equal),
@@ -858,6 +1200,19 @@ fn lex(source: String) -> Vec<Token> {
 // this should be written as an enum with the arguements for each opcode type explicitly defined
 #[derive(Debug, Clone)]
 enum OpCode {
+    And {
+        arg1: usize,
+        arg2: usize,
+        arg3: usize,
+    },
+    Or {
+        arg1: usize,
+        arg2: usize,
+        arg3: usize,
+    },
+    Not {
+        value: usize,
+    },
     Add {
         arg1: usize,
         arg2: usize,
@@ -918,7 +1273,6 @@ struct Function {
 
 #[derive(Debug, Clone)]
 enum AbstractSyntaxTree {
-    // Statements
     Const {
         name: String,
         type_annot: String,
@@ -929,7 +1283,6 @@ enum AbstractSyntaxTree {
         type_annot: String,
         value: Box<AbstractSyntaxTree>,
     },
-    // Expressions
     Int {
         value: usize,
     },
@@ -942,7 +1295,6 @@ enum AbstractSyntaxTree {
     UpName {
         name: String,
     },
-    // Operators
     Plus {
         left: Box<AbstractSyntaxTree>,
         right: Box<AbstractSyntaxTree>,
@@ -955,7 +1307,17 @@ enum AbstractSyntaxTree {
         left: Box<AbstractSyntaxTree>,
         right: Box<AbstractSyntaxTree>,
     },
-    // Functions
+    And {
+        left: Box<AbstractSyntaxTree>,
+        right: Box<AbstractSyntaxTree>,
+    },
+    Or {
+        left: Box<AbstractSyntaxTree>,
+        right: Box<AbstractSyntaxTree>,
+    },
+    Not {
+        value: Box<AbstractSyntaxTree>,
+    },
     Fn {
         name: String,
         // args: Vec<String>,
@@ -965,7 +1327,6 @@ enum AbstractSyntaxTree {
         name: String,
         args: Vec<AbstractSyntaxTree>,
     },
-    // Other
     Block {
         statements: Vec<AbstractSyntaxTree>,
     },
@@ -987,6 +1348,10 @@ enum Token {
     Minus,
     // String Operators
     LtGt, // '<>'
+    // Boolean Operators
+    And, // &&
+    Or,  // ||
+    Not, // !
     // Other Punctuation
     Colon,
     Equal,

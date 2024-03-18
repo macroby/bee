@@ -7,6 +7,14 @@ fn main() {
   let itest: Integer = five - 4
 
   let btest: Bool = True
+  let btest_and: Bool = btest && True
+  let btest_or: Bool = btest || False
+  let btest_not_1: Bool = !btest
+  let btest_not_2: Bool = !False
+  print_bool(btest_and)
+  print_bool(btest_or)
+  print_bool(btest_not_1)
+  print_bool(btest_not_2)
 
   print_integer(itest)
   print_integer(ctest)
