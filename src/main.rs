@@ -34,49 +34,32 @@ fn interpret(op_codes: Vec<OpCode>) {
     let mut pc = 0;
     loop {
         let op_code = &op_codes[pc];
-        match op_code.name {
-            OpCodeName::Add => {
-                let arg1 = op_code.args[0];
-                let arg2 = op_code.args[1];
-                let arg3 = op_code.args[2];
-                registers[arg1] = registers[arg2] + registers[arg3];
+        match op_code {
+            OpCode::Add { arg1, arg2, arg3 } => {
+                registers[*arg1] = registers[*arg2] + registers[*arg3];
             }
-            OpCodeName::Sub => {
-                let arg1 = op_code.args[0];
-                let arg2 = op_code.args[1];
-                let arg3 = op_code.args[2];
-                registers[arg1] = registers[arg2] - registers[arg3];
+            OpCode::Sub { arg1, arg2, arg3 } => {
+                registers[*arg1] = registers[*arg2] - registers[*arg3];
             }
-            OpCodeName::Load => {
-                let arg1 = op_code.args[0];
-                let arg2 = &op_code.args[1];
-                registers[arg1] = *variables.get(arg2).unwrap();
+            OpCode::Load { arg1, arg2 } => {
+                registers[*arg1] = *variables.get(&arg2).unwrap();
             }
-            OpCodeName::LoadImm => {
-                let arg1 = op_code.args[0];
-                let arg2 = op_code.args[1];
-                registers[arg1] = arg2;
+            OpCode::LoadImm { arg1, arg2 } => {
+                registers[*arg1] = *arg2;
             }
-            OpCodeName::Move => {
-                let arg1 = op_code.args[0];
-                let arg2 = op_code.args[1];
-                registers[arg1] = registers[arg2];
+            OpCode::Move { arg1, arg2 } => {
+                registers[*arg1] = registers[*arg2];
             }
-            OpCodeName::Store => {
-                let arg1 = &op_code.args[0];
-                let arg2 = op_code.args[1];
-                variables.insert(*arg1, registers[arg2]);
+            OpCode::Store { arg1, arg2 } => {
+                variables.insert(*arg1, registers[*arg2]);
             }
-            OpCodeName::StoreImm => {
-                let arg1 = &op_code.args[0];
-                let arg2 = op_code.args[1];
-                variables.insert(*arg1, arg2);
+            OpCode::StoreImm { arg1, arg2 } => {
+                variables.insert(*arg1, *arg2);
             }
-            OpCodeName::Print => {
-                let arg1 = op_code.args[0];
-                println!("{}", registers[arg1]);
+            OpCode::Print { arg1 } => {
+                println!("{}", registers[*arg1]);
             }
-            OpCodeName::Halt => {
+            OpCode::Halt => {
                 break;
             }
         }
@@ -106,13 +89,13 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                             .iter()
                             .position(|v| v.name == name)
                             .unwrap();
-                        op_codes.push(OpCode {
-                            name: OpCodeName::LoadImm,
-                            args: vec![1, constant.value.parse().unwrap()],
+                        op_codes.push(OpCode::LoadImm {
+                            arg1: 1,
+                            arg2: constant.value.parse().unwrap(),
                         });
-                        op_codes.push(OpCode {
-                            name: OpCodeName::Store,
-                            args: vec![target_index, 1],
+                        op_codes.push(OpCode::Store {
+                            arg1: target_index,
+                            arg2: 1,
                         });
                     }
                     None => {
@@ -126,13 +109,13 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                             .iter()
                             .position(|v| v.name == name)
                             .unwrap();
-                        op_codes.push(OpCode {
-                            name: OpCodeName::Load,
-                            args: vec![1, var_index],
+                        op_codes.push(OpCode::Load {
+                            arg1: 1,
+                            arg2: var_index,
                         });
-                        op_codes.push(OpCode {
-                            name: OpCodeName::Store,
-                            args: vec![target_index, 1],
+                        op_codes.push(OpCode::Store {
+                            arg1: target_index,
+                            arg2: 1,
                         });
                     }
                 }
@@ -144,9 +127,9 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                         .iter()
                         .position(|v| v.name == name)
                         .unwrap();
-                    op_codes.push(OpCode {
-                        name: OpCodeName::StoreImm,
-                        args: vec![target_index, 1],
+                    op_codes.push(OpCode::StoreImm {
+                        arg1: target_index,
+                        arg2: 1,
                     });
                 }
                 "False" => {
@@ -155,9 +138,9 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                         .iter()
                         .position(|v| v.name == name)
                         .unwrap();
-                    op_codes.push(OpCode {
-                        name: OpCodeName::StoreImm,
-                        args: vec![target_index, 0],
+                    op_codes.push(OpCode::StoreImm {
+                        arg1: target_index,
+                        arg2: 0,
                     });
                 }
                 _ => panic!("Invalid value"),
@@ -168,17 +151,17 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                     .iter()
                     .position(|v| v.name == name)
                     .unwrap();
-                op_codes.push(OpCode {
-                    name: OpCodeName::StoreImm,
-                    args: vec![target_index, value as usize],
+                op_codes.push(OpCode::StoreImm {
+                    arg1: target_index,
+                    arg2: value,
                 });
             }
             AbstractSyntaxTree::Minus { left, right } => {
                 match *left {
                     AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode {
-                            name: OpCodeName::LoadImm,
-                            args: vec![1, value as usize],
+                        op_codes.push(OpCode::LoadImm {
+                            arg1: 1,
+                            arg2: value as usize,
                         });
                     }
                     AbstractSyntaxTree::Name { name } => {
@@ -187,9 +170,9 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                             .iter()
                             .position(|v| v.name == name)
                             .unwrap();
-                        op_codes.push(OpCode {
-                            name: OpCodeName::Load,
-                            args: vec![1, var_index],
+                        op_codes.push(OpCode::Load {
+                            arg1: 1,
+                            arg2: var_index,
                         });
                     }
                     _ => panic!("Invalid value"),
@@ -197,9 +180,9 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
 
                 match *right {
                     AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode {
-                            name: OpCodeName::LoadImm,
-                            args: vec![2, value as usize],
+                        op_codes.push(OpCode::LoadImm {
+                            arg1: 2,
+                            arg2: value as usize,
                         });
                     }
                     AbstractSyntaxTree::Name { name } => {
@@ -208,17 +191,18 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                             .iter()
                             .position(|v| v.name == name)
                             .unwrap();
-                        op_codes.push(OpCode {
-                            name: OpCodeName::Load,
-                            args: vec![2, var_index],
+                        op_codes.push(OpCode::Load {
+                            arg1: 2,
+                            arg2: var_index,
                         });
                     }
                     _ => panic!("Invalid value"),
                 }
 
-                op_codes.push(OpCode {
-                    name: OpCodeName::Sub,
-                    args: vec![3, 1, 2],
+                op_codes.push(OpCode::Sub {
+                    arg1: 3,
+                    arg2: 1,
+                    arg3: 2,
                 });
 
                 let target_index = symbol_table
@@ -227,17 +211,17 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                     .position(|v| v.name == name)
                     .unwrap();
 
-                op_codes.push(OpCode {
-                    name: OpCodeName::Store,
-                    args: vec![target_index, 3],
+                op_codes.push(OpCode::Store {
+                    arg1: target_index,
+                    arg2: 3,
                 });
             }
             AbstractSyntaxTree::Plus { left, right } => {
                 match *left {
                     AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode {
-                            name: OpCodeName::LoadImm,
-                            args: vec![1, value as usize],
+                        op_codes.push(OpCode::LoadImm {
+                            arg1: 1,
+                            arg2: value as usize,
                         });
                     }
                     AbstractSyntaxTree::Name { name } => {
@@ -246,9 +230,9 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                             .iter()
                             .position(|v| v.name == name)
                             .unwrap();
-                        op_codes.push(OpCode {
-                            name: OpCodeName::Load,
-                            args: vec![1, var_index],
+                        op_codes.push(OpCode::Load {
+                            arg1: 1,
+                            arg2: var_index,
                         });
                     }
                     _ => panic!("Invalid value"),
@@ -256,9 +240,9 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
 
                 match *right {
                     AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode {
-                            name: OpCodeName::LoadImm,
-                            args: vec![2, value as usize],
+                        op_codes.push(OpCode::LoadImm {
+                            arg1: 2,
+                            arg2: value as usize,
                         });
                     }
                     AbstractSyntaxTree::Name { name } => {
@@ -267,17 +251,18 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                             .iter()
                             .position(|v| v.name == name)
                             .unwrap();
-                        op_codes.push(OpCode {
-                            name: OpCodeName::Load,
-                            args: vec![2, var_index],
+                        op_codes.push(OpCode::Load {
+                            arg1: 2,
+                            arg2: var_index,
                         });
                     }
                     _ => panic!("Invalid value"),
                 }
 
-                op_codes.push(OpCode {
-                    name: OpCodeName::Add,
-                    args: vec![3, 1, 2],
+                op_codes.push(OpCode::Add {
+                    arg1: 3,
+                    arg2: 1,
+                    arg3: 2,
                 });
 
                 let target_index = symbol_table
@@ -286,9 +271,9 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                     .position(|v| v.name == name)
                     .unwrap();
 
-                op_codes.push(OpCode {
-                    name: OpCodeName::Store,
-                    args: vec![target_index, 3],
+                op_codes.push(OpCode::Store {
+                    arg1: target_index,
+                    arg2: 3,
                 });
             }
             _ => panic!("Invalid value"),
@@ -303,32 +288,25 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
             for statement in statements {
                 code_gen(statement, symbol_table, op_codes);
             }
-            op_codes.push(OpCode {
-                name: OpCodeName::Halt,
-                args: vec![],
-            });
+            op_codes.push(OpCode::Halt);
         }
         AbstractSyntaxTree::Call { name, args } => {
             if name == "print_integer" {
                 match args.first() {
                     Some(arg) => match arg {
                         AbstractSyntaxTree::Int { value } => {
-                            op_codes.push(OpCode {
-                                name: OpCodeName::Print,
-                                args: vec![*value as usize],
+                            op_codes.push(OpCode::Print {
+                                arg1: *value as usize,
                             });
                         }
                         AbstractSyntaxTree::Name { name } => {
                             match symbol_table.constants.iter().find(|v| v.name == *name) {
                                 Some(constant) => {
-                                    op_codes.push(OpCode {
-                                        name: OpCodeName::LoadImm,
-                                        args: vec![1, constant.value.parse().unwrap()],
+                                    op_codes.push(OpCode::LoadImm {
+                                        arg1: 1,
+                                        arg2: constant.value.parse().unwrap(),
                                     });
-                                    op_codes.push(OpCode {
-                                        name: OpCodeName::Print,
-                                        args: vec![1],
-                                    });
+                                    op_codes.push(OpCode::Print { arg1: 1 });
                                 }
                                 None => {
                                     let var_index = symbol_table
@@ -336,14 +314,11 @@ fn code_gen(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable, op_codes: &
                                         .iter()
                                         .position(|v| v.name == *name)
                                         .unwrap();
-                                    op_codes.push(OpCode {
-                                        name: OpCodeName::Load,
-                                        args: vec![1, var_index],
+                                    op_codes.push(OpCode::Load {
+                                        arg1: 1,
+                                        arg2: var_index,
                                     });
-                                    op_codes.push(OpCode {
-                                        name: OpCodeName::Print,
-                                        args: vec![1],
-                                    });
+                                    op_codes.push(OpCode::Print { arg1: 1 });
                                 }
                             }
                         }
@@ -882,21 +857,40 @@ fn lex(source: String) -> Vec<Token> {
 
 // this should be written as an enum with the arguements for each opcode type explicitly defined
 #[derive(Debug, Clone)]
-struct OpCode {
-    name: OpCodeName,
-    args: Vec<usize>,
-}
-
-#[derive(Debug, Clone)]
-enum OpCodeName {
-    Add,
-    Sub,
-    Load,
-    LoadImm,
-    Move,
-    Store,
-    StoreImm,
-    Print,
+enum OpCode {
+    Add {
+        arg1: usize,
+        arg2: usize,
+        arg3: usize,
+    },
+    Sub {
+        arg1: usize,
+        arg2: usize,
+        arg3: usize,
+    },
+    Load {
+        arg1: usize,
+        arg2: usize,
+    },
+    LoadImm {
+        arg1: usize,
+        arg2: usize,
+    },
+    Move {
+        arg1: usize,
+        arg2: usize,
+    },
+    Store {
+        arg1: usize,
+        arg2: usize,
+    },
+    StoreImm {
+        arg1: usize,
+        arg2: usize,
+    },
+    Print {
+        arg1: usize,
+    },
     Halt,
 }
 
