@@ -1,9 +1,5 @@
-- Seperate Local Variables from Constants
-- Create a new type to reprsent the value of a variable
-- Implement Main function logic(look for main function in the code and run it in interpreter)
-- implement control flow(If, else, else if, while, for, break, continue, return)
-- change name of block struct to module
-- implement gleam style blocks
-- module constants
-- module functions besides main, and return values from functions
-- returning values from blocks
+- equality
+- strings
+- floats
+- multiple infix operators in a row which implies some kind of order of operations
+- type aliases
