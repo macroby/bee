@@ -3,3 +3,4 @@
 - floats
 - multiple infix operators in a row which implies some kind of order of operations
 - type aliases
+- move local variables in to function type  within symbol table

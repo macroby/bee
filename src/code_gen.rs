@@ -50,7 +50,7 @@ pub fn code_gen(
                             .iter()
                             .position(|v| v.name == name)
                             .unwrap();
-                        op_codes.push(OpCode::LoadImm {
+                        op_codes.push(OpCode::LoadIntConst {
                             arg1: 1,
                             arg2: constant.value.parse().unwrap(),
                         });
@@ -88,7 +88,7 @@ pub fn code_gen(
                         .iter()
                         .position(|v| v.name == name)
                         .unwrap();
-                    op_codes.push(OpCode::StoreImm {
+                    op_codes.push(OpCode::StoreIntConst {
                         arg1: target_index,
                         arg2: 1,
                     });
@@ -99,7 +99,7 @@ pub fn code_gen(
                         .iter()
                         .position(|v| v.name == name)
                         .unwrap();
-                    op_codes.push(OpCode::StoreImm {
+                    op_codes.push(OpCode::StoreIntConst {
                         arg1: target_index,
                         arg2: 0,
                     });
@@ -112,7 +112,7 @@ pub fn code_gen(
                     .iter()
                     .position(|v| v.name == name)
                     .unwrap();
-                op_codes.push(OpCode::StoreImm {
+                op_codes.push(OpCode::StoreIntConst {
                     arg1: target_index,
                     arg2: value,
                 });
@@ -120,7 +120,7 @@ pub fn code_gen(
             AbstractSyntaxTree::Minus { left, right } => {
                 match *left {
                     AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode::LoadImm {
+                        op_codes.push(OpCode::LoadIntConst {
                             arg1: 1,
                             arg2: value as usize,
                         });
@@ -141,7 +141,7 @@ pub fn code_gen(
 
                 match *right {
                     AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode::LoadImm {
+                        op_codes.push(OpCode::LoadIntConst {
                             arg1: 2,
                             arg2: value as usize,
                         });
@@ -180,7 +180,7 @@ pub fn code_gen(
             AbstractSyntaxTree::Plus { left, right } => {
                 match *left {
                     AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode::LoadImm {
+                        op_codes.push(OpCode::LoadIntConst {
                             arg1: 1,
                             arg2: value as usize,
                         });
@@ -201,7 +201,7 @@ pub fn code_gen(
 
                 match *right {
                     AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode::LoadImm {
+                        op_codes.push(OpCode::LoadIntConst {
                             arg1: 2,
                             arg2: value as usize,
                         });
@@ -241,9 +241,9 @@ pub fn code_gen(
                 match *left {
                     AbstractSyntaxTree::UpName { name } => {
                         if name == "True" {
-                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 1 });
+                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 1 });
                         } else if name == "False" {
-                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 0 });
+                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 0 });
                         } else {
                             panic!("Invalid value");
                         }
@@ -265,9 +265,9 @@ pub fn code_gen(
                 match *right {
                     AbstractSyntaxTree::UpName { name } => {
                         if name == "True" {
-                            op_codes.push(OpCode::LoadImm { arg1: 2, arg2: 1 });
+                            op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 1 });
                         } else if name == "False" {
-                            op_codes.push(OpCode::LoadImm { arg1: 2, arg2: 0 });
+                            op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 0 });
                         } else {
                             panic!("Invalid value");
                         }
@@ -307,9 +307,9 @@ pub fn code_gen(
                 match *left {
                     AbstractSyntaxTree::UpName { name } => {
                         if name == "True" {
-                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 1 });
+                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 1 });
                         } else if name == "False" {
-                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 0 });
+                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 0 });
                         } else {
                             panic!("Invalid value");
                         }
@@ -331,9 +331,9 @@ pub fn code_gen(
                 match *right {
                     AbstractSyntaxTree::UpName { name } => {
                         if name == "True" {
-                            op_codes.push(OpCode::LoadImm { arg1: 2, arg2: 1 });
+                            op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 1 });
                         } else if name == "False" {
-                            op_codes.push(OpCode::LoadImm { arg1: 2, arg2: 0 });
+                            op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 0 });
                         } else {
                             panic!("Invalid value");
                         }
@@ -373,9 +373,9 @@ pub fn code_gen(
                 match *value {
                     AbstractSyntaxTree::UpName { name } => {
                         if name == "True" {
-                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 1 });
+                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 1 });
                         } else if name == "False" {
-                            op_codes.push(OpCode::LoadImm { arg1: 1, arg2: 0 });
+                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 0 });
                         } else {
                             panic!("Invalid value");
                         }
@@ -407,6 +407,78 @@ pub fn code_gen(
                     arg2: 1,
                 });
             }
+            AbstractSyntaxTree::LtGt { left, right } => {
+                // concatinate two strings
+                match *left {
+                    AbstractSyntaxTree::String { value } => {
+                        op_codes.push(OpCode::LoadStringConst {
+                            arg1: 1,
+                            arg2: value.into(),
+                        });
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let var_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == name)
+                            .unwrap();
+                        op_codes.push(OpCode::Load {
+                            arg1: 1,
+                            arg2: var_index,
+                        });
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                match *right {
+                    AbstractSyntaxTree::String { value } => {
+                        op_codes.push(OpCode::LoadStringConst {
+                            arg1: 2,
+                            arg2: value.into(),
+                        });
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let var_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == name)
+                            .unwrap();
+                        op_codes.push(OpCode::Load {
+                            arg1: 2,
+                            arg2: var_index,
+                        });
+                    }
+                    _ => panic!("Invalid value"),
+                }
+
+                op_codes.push(OpCode::Concat {
+                    arg1: 3,
+                    arg2: 1,
+                    arg3: 2,
+                });
+
+                let target_index = symbol_table
+                    .variables
+                    .iter()
+                    .position(|v| v.name == name)
+                    .unwrap();
+
+                op_codes.push(OpCode::Store {
+                    arg1: target_index,
+                    arg2: 3,
+                });
+            }
+            AbstractSyntaxTree::String { value } => {
+                let target_index = symbol_table
+                    .variables
+                    .iter()
+                    .position(|v| v.name == name)
+                    .unwrap();
+                op_codes.push(OpCode::StoreStringConst {
+                    arg1: target_index,
+                    arg2: value.into(),
+                });
+            }
             value => panic!("Invalid value: {:?}", value),
         },
         AbstractSyntaxTree::Fn { name, body } => {
@@ -425,14 +497,16 @@ pub fn code_gen(
             "print_integer" => match args.first() {
                 Some(arg) => match arg {
                     AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode::Print {
-                            arg1: *value as usize,
+                        op_codes.push(OpCode::LoadIntConst {
+                            arg1: 1,
+                            arg2: *value,
                         });
+                        op_codes.push(OpCode::Print { arg1: 1 });
                     }
                     AbstractSyntaxTree::Name { name } => {
                         match symbol_table.constants.iter().find(|v| v.name == *name) {
                             Some(constant) => {
-                                op_codes.push(OpCode::LoadImm {
+                                op_codes.push(OpCode::LoadIntConst {
                                     arg1: 1,
                                     arg2: constant.value.parse().unwrap(),
                                 });
@@ -470,7 +544,7 @@ pub fn code_gen(
                     AbstractSyntaxTree::Name { name } => {
                         match symbol_table.constants.iter().find(|v| v.name == *name) {
                             Some(constant) => {
-                                op_codes.push(OpCode::LoadImm {
+                                op_codes.push(OpCode::LoadIntConst {
                                     arg1: 1,
                                     arg2: constant.value.parse().unwrap(),
                                 });
@@ -489,6 +563,31 @@ pub fn code_gen(
                                 op_codes.push(OpCode::Print { arg1: 1 });
                             }
                         }
+                    }
+                    _ => panic!("Invalid value"),
+                },
+                None => panic!("No args"),
+            },
+            "print_string" => match args.first() {
+                Some(arg) => match arg {
+                    AbstractSyntaxTree::String { value } => {
+                        op_codes.push(OpCode::LoadStringConst {
+                            arg1: 1,
+                            arg2: value.clone().into_boxed_str(),
+                        });
+                        op_codes.push(OpCode::Print { arg1: 1 });
+                    }
+                    AbstractSyntaxTree::Name { name } => {
+                        let var_index = symbol_table
+                            .variables
+                            .iter()
+                            .position(|v| v.name == *name)
+                            .unwrap();
+                        op_codes.push(OpCode::Load {
+                            arg1: 1,
+                            arg2: var_index,
+                        });
+                        op_codes.push(OpCode::Print { arg1: 1 });
                     }
                     _ => panic!("Invalid value"),
                 },

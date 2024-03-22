@@ -23,13 +23,22 @@ pub enum OpCode {
         arg2: usize,
         arg3: usize,
     },
+    Concat {
+        arg1: usize,
+        arg2: usize,
+        arg3: usize,
+    },
     Load {
         arg1: usize,
         arg2: usize,
     },
-    LoadImm {
+    LoadIntConst {
         arg1: usize,
         arg2: usize,
+    },
+    LoadStringConst {
+        arg1: usize,
+        arg2: Box<str>,
     },
     Move {
         arg1: usize,
@@ -39,9 +48,13 @@ pub enum OpCode {
         arg1: usize,
         arg2: usize,
     },
-    StoreImm {
+    StoreIntConst {
         arg1: usize,
         arg2: usize,
+    },
+    StoreStringConst {
+        arg1: usize,
+        arg2: Box<str>,
     },
     Print {
         arg1: usize,

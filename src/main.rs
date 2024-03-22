@@ -41,45 +41,134 @@ fn main() {
     interpret(op_codes);
 }
 
+#[derive(Debug, Clone)]
+enum Value {
+    Int(usize),
+    String(Box<str>),
+}
+
+impl Operation for Value {
+    fn add(&self, other: &Self) -> Self {
+        match self {
+            Value::Int(value) => match other {
+                Value::Int(other_value) => Value::Int(value + other_value),
+                _ => panic!("Invalid operation"),
+            },
+            Value::String(_) => panic!("Invalid operation"),
+        }
+    }
+
+    fn sub(&self, other: &Self) -> Self {
+        match self {
+            Value::Int(value) => match other {
+                Value::Int(other_value) => Value::Int(value - other_value),
+                _ => panic!("Invalid operation"),
+            },
+            Value::String(_) => panic!("Invalid operation"),
+        }
+    }
+
+    fn and(&self, other: &Self) -> Self {
+        match self {
+            Value::Int(value) => match other {
+                Value::Int(other_value) => Value::Int(value & other_value),
+                _ => panic!("Invalid operation"),
+            },
+            Value::String(_) => panic!("Invalid operation"),
+        }
+    }
+
+    fn or(&self, other: &Self) -> Self {
+        match self {
+            Value::Int(value) => match other {
+                Value::Int(other_value) => Value::Int(value | other_value),
+                _ => panic!("Invalid operation"),
+            },
+            Value::String(_) => panic!("Invalid operation"),
+        }
+    }
+
+    fn not(&self) -> Self {
+        match self {
+            Value::Int(value) => Value::Int(value ^ 1),
+            Value::String(_) => panic!("Invalid operation"),
+        }
+    }
+
+    fn concat(&self, other: &Self) -> Self {
+        match self {
+            Value::String(value) => match other {
+                Value::String(other_value) => {
+                    Value::String(format!("{}{}", value, other_value).into())
+                }
+                _ => panic!("Invalid operation"),
+            },
+            Value::Int(_) => panic!("Invalid operation"),
+        }
+    }
+}
+
+pub trait Operation {
+    fn add(&self, other: &Self) -> Self;
+    fn sub(&self, other: &Self) -> Self;
+    fn and(&self, other: &Self) -> Self;
+    fn or(&self, other: &Self) -> Self;
+    fn not(&self) -> Self;
+    fn concat(&self, other: &Self) -> Self;
+}
+
+const INIT: Value = Value::Int(0);
 fn interpret(op_codes: Vec<OpCode>) {
-    let mut registers = [0; 32];
-    let mut variables: HashMap<usize, usize> = HashMap::new();
+    let mut registers: [Value; 32] = [INIT; 32];
+
+    // Does this need to be a hash map? since everything is index by usize
+    // we should be able to use a vector
+    let mut variables: HashMap<usize, Value> = HashMap::new();
     let mut pc = 0;
     loop {
         let op_code = &op_codes[pc];
         match op_code {
             OpCode::Add { arg1, arg2, arg3 } => {
-                registers[*arg1] = registers[*arg2] + registers[*arg3];
+                registers[*arg1] = registers[*arg2].add(&registers[*arg3]);
             }
             OpCode::Sub { arg1, arg2, arg3 } => {
-                registers[*arg1] = registers[*arg2] - registers[*arg3];
+                registers[*arg1] = registers[*arg2].sub(&registers[*arg3]);
             }
             OpCode::And { arg1, arg2, arg3 } => {
-                registers[*arg1] = registers[*arg2] & registers[*arg3];
+                registers[*arg1] = registers[*arg2].and(&registers[*arg3]);
             }
             OpCode::Or { arg1, arg2, arg3 } => {
-                registers[*arg1] = registers[*arg2] | registers[*arg3];
+                registers[*arg1] = registers[*arg2].or(&registers[*arg3]);
             }
             OpCode::Not { value } => {
-                registers[*value] = registers[*value] ^ 1;
+                registers[*value] = registers[*value].not();
+            }
+            OpCode::Concat { arg1, arg2, arg3 } => {
+                registers[*arg1] = registers[*arg2].concat(&registers[*arg3]);
             }
             OpCode::Load { arg1, arg2 } => {
-                registers[*arg1] = *variables.get(&arg2).unwrap();
+                registers[*arg1] = variables.get(&arg2).unwrap().clone();
             }
-            OpCode::LoadImm { arg1, arg2 } => {
-                registers[*arg1] = *arg2;
+            OpCode::LoadIntConst { arg1, arg2 } => {
+                registers[*arg1] = Value::Int(*arg2);
+            }
+            OpCode::LoadStringConst { arg1, arg2 } => {
+                registers[*arg1] = Value::String(arg2.clone());
             }
             OpCode::Move { arg1, arg2 } => {
-                registers[*arg1] = registers[*arg2];
+                registers[*arg1] = registers[*arg2].to_owned();
             }
             OpCode::Store { arg1, arg2 } => {
-                variables.insert(*arg1, registers[*arg2]);
+                variables.insert(*arg1, registers[*arg2].to_owned());
             }
-            OpCode::StoreImm { arg1, arg2 } => {
-                variables.insert(*arg1, *arg2);
+            OpCode::StoreIntConst { arg1, arg2 } => {
+                variables.insert(*arg1, Value::Int(*arg2));
+            }
+            OpCode::StoreStringConst { arg1, arg2 } => {
+                variables.insert(*arg1, Value::String(arg2.clone()));
             }
             OpCode::Print { arg1 } => {
-                println!("{}", registers[*arg1]);
+                println!("{:?}", registers[*arg1]);
             }
             OpCode::Halt => {
                 break;
