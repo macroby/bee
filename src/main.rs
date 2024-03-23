@@ -265,14 +265,24 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                             }
                         }
                         AbstractSyntaxTree::Name { name } => {
-                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                            match variable {
+                            match symbol_table.constants.iter().find(|v| v.name == name) {
                                 Some(v) => {
                                     if v.type_annot != type_annot {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => panic!("Variable not found"),
+                                None => {
+                                    let variable =
+                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    match variable {
+                                        Some(v) => {
+                                            if v.type_annot != type_annot {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => panic!("Variable not found"),
+                                    }
+                                }
                             }
                         }
                         _ => panic!("Invalid value"),
@@ -284,14 +294,25 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                             }
                         }
                         AbstractSyntaxTree::Name { name } => {
-                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                            match variable {
+                            // we need to check if name refers to some constant first and if not then check variables
+                            match symbol_table.constants.iter().find(|v| v.name == name) {
                                 Some(v) => {
                                     if v.type_annot != type_annot {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => panic!("Variable not found"),
+                                None => {
+                                    let variable =
+                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    match variable {
+                                        Some(v) => {
+                                            if v.type_annot != type_annot {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => panic!("Variable not found"),
+                                    }
+                                }
                             }
                         }
                         _ => panic!("Invalid value"),
@@ -309,14 +330,24 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                             }
                         }
                         AbstractSyntaxTree::Name { name } => {
-                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                            match variable {
+                            match symbol_table.constants.iter().find(|v| v.name == name) {
                                 Some(v) => {
                                     if v.type_annot != type_annot {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => panic!("Variable not found"),
+                                None => {
+                                    let variable =
+                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    match variable {
+                                        Some(v) => {
+                                            if v.type_annot != type_annot {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => panic!("Variable not found"),
+                                    }
+                                }
                             }
                         }
                         _ => panic!("Invalid value"),
@@ -328,14 +359,24 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                             }
                         }
                         AbstractSyntaxTree::Name { name } => {
-                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                            match variable {
+                            match symbol_table.constants.iter().find(|v| v.name == name) {
                                 Some(v) => {
                                     if v.type_annot != type_annot {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => panic!("Variable not found"),
+                                None => {
+                                    let variable =
+                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    match variable {
+                                        Some(v) => {
+                                            if v.type_annot != type_annot {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => panic!("Variable not found"),
+                                    }
+                                }
                             }
                         }
                         _ => panic!("Invalid value"),
@@ -353,14 +394,24 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                             }
                         }
                         AbstractSyntaxTree::Name { name } => {
-                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                            match variable {
+                            match symbol_table.constants.iter().find(|v| v.name == name) {
                                 Some(v) => {
                                     if v.type_annot != type_annot {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => panic!("Variable not found"),
+                                None => {
+                                    let variable =
+                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    match variable {
+                                        Some(v) => {
+                                            if v.type_annot != type_annot {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => panic!("Variable not found"),
+                                    }
+                                }
                             }
                         }
                         _ => panic!("Invalid value"),
@@ -372,14 +423,24 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                             }
                         }
                         AbstractSyntaxTree::Name { name } => {
-                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                            match variable {
+                            match symbol_table.constants.iter().find(|v| v.name == name) {
                                 Some(v) => {
                                     if v.type_annot != type_annot {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => panic!("Variable not found"),
+                                None => {
+                                    let variable =
+                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    match variable {
+                                        Some(v) => {
+                                            if v.type_annot != type_annot {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => panic!("Variable not found"),
+                                    }
+                                }
                             }
                         }
                         _ => panic!("Invalid value"),
@@ -398,14 +459,24 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                             }
                         }
                         AbstractSyntaxTree::Name { name } => {
-                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                            match variable {
+                            match symbol_table.constants.iter().find(|v| v.name == name) {
                                 Some(v) => {
                                     if v.type_annot != type_annot {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => panic!("Variable not found"),
+                                None => {
+                                    let variable =
+                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    match variable {
+                                        Some(v) => {
+                                            if v.type_annot != type_annot {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => panic!("Variable not found"),
+                                    }
+                                }
                             }
                         }
                         _ => panic!("Invalid value"),
@@ -417,14 +488,24 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                             }
                         }
                         AbstractSyntaxTree::Name { name } => {
-                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                            match variable {
+                            match symbol_table.constants.iter().find(|v| v.name == name) {
                                 Some(v) => {
                                     if v.type_annot != type_annot {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => panic!("Variable not found"),
+                                None => {
+                                    let variable =
+                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    match variable {
+                                        Some(v) => {
+                                            if v.type_annot != type_annot {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => panic!("Variable not found"),
+                                    }
+                                }
                             }
                         }
                         _ => panic!("Invalid value"),
@@ -442,14 +523,24 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                             }
                         }
                         AbstractSyntaxTree::Name { name } => {
-                            let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                            match variable {
+                            match symbol_table.constants.iter().find(|v| v.name == name) {
                                 Some(v) => {
                                     if v.type_annot != type_annot {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => panic!("Variable not found"),
+                                None => {
+                                    let variable =
+                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    match variable {
+                                        Some(v) => {
+                                            if v.type_annot != type_annot {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => panic!("Variable not found"),
+                                    }
+                                }
                             }
                         }
                         _ => panic!("Invalid value"),
@@ -497,5 +588,69 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
             analyze(*value, symbol_table);
         }
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn it_works() {
+        let contents = r#"const ctest: Integer = 5
+            const string_const_test: String = "constant"
+            const bool_const_test: Bool = True
+            
+            fn main() {
+              let stest: String = "hello"
+              let concat_test: String = stest <> " world"
+              let string_const_concat_test: String = stest <> string_const_test
+            
+              print_string(stest)
+              print_string(concat_test)
+              print_string(string_const_concat_test)
+            
+              let btest: Bool = True
+              let btest_and: Bool = btest && True
+              let btest_or: Bool = btest || False
+              let btest_not_1: Bool = !btest
+              let btest_not_2: Bool = !False
+              let bool_const_and_test: Bool = bool_const_test && True
+              print_bool(bool_const_and_test)
+              print_bool(btest_and)
+              print_bool(btest_or)
+              print_bool(btest_not_1)
+              print_bool(btest_not_2)
+            
+              let one: Integer = 1
+              let one_again: Integer = one
+              let five: Integer = one + 4
+              let itest: Integer = five - 4
+              let ctest_add: Integer = 1 + ctest
+              print_integer(itest)
+              print_integer(ctest_add)
+            }"#;
+        let tokens = lex(contents.to_string());
+        let ast = parse(tokens);
+        println!("AST:");
+        println!("{:?}", ast);
+        let mut symbol_table = SymbolTable {
+            variables: Vec::new(),
+            functions: Vec::new(),
+            constants: Vec::new(),
+        };
+        analyze(ast.clone(), &mut symbol_table);
+        println!("Symbol Table:");
+        println!("{:?}", symbol_table);
+
+        let mut op_codes = Vec::new();
+        code_gen(ast.clone(), &mut symbol_table, &mut op_codes);
+
+        println!("Codegen Output:");
+        for op_code in op_codes.clone() {
+            println!("{:?}", op_code);
+        }
+
+        println!("Interpretation:");
+        interpret(op_codes);
     }
 }
