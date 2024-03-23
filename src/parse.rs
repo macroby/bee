@@ -1,9 +1,10 @@
-use crate::ast::AbstractSyntaxTree;
+use crate::ast::{AbstractSyntaxTree, Constant, Document, Function};
 use crate::token::Token;
 
-pub fn parse(tokens: Vec<Token>) -> AbstractSyntaxTree {
+pub fn parse(tokens: Vec<Token>) -> Document {
     let mut tokens = tokens.iter().peekable();
-    let mut statements = Vec::new();
+    let mut functions = Vec::new();
+    let mut constants = Vec::new();
     while let Some(token) = tokens.next() {
         match token {
             Token::Const => {
@@ -23,10 +24,10 @@ pub fn parse(tokens: Vec<Token>) -> AbstractSyntaxTree {
                     _ => panic!("Expected an equal sign after type annotation"),
                 }
                 let value = parse_expression(&mut tokens);
-                statements.push(AbstractSyntaxTree::Const {
+                constants.push(Constant {
                     name: name.clone(),
                     type_annot: type_annotation.clone(),
-                    value: Box::new(value),
+                    value,
                 });
             }
             Token::Fn => {
@@ -51,10 +52,9 @@ pub fn parse(tokens: Vec<Token>) -> AbstractSyntaxTree {
                     _ => panic!("Expected a left brace after fn args"),
                 }
                 let body = parse_fn_body(&mut tokens);
-                statements.push(AbstractSyntaxTree::Fn {
+                functions.push(Function {
                     name: name.clone(),
-                    // args,
-                    body: Box::new(body),
+                    body,
                 });
             }
             _ => {
@@ -62,7 +62,10 @@ pub fn parse(tokens: Vec<Token>) -> AbstractSyntaxTree {
             }
         }
     }
-    AbstractSyntaxTree::Block { statements }
+    Document {
+        constants,
+        functions,
+    }
 }
 
 fn parse_expression(

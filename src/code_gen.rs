@@ -1,41 +1,56 @@
-use crate::ast::AbstractSyntaxTree;
+use crate::ast::{AbstractSyntaxTree, Document};
 use crate::opcode::OpCode;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SymbolTable {
-    pub variables: Vec<Variable>,
     pub functions: Vec<Function>,
     pub constants: Vec<Constant>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Constant {
     pub name: String,
     pub type_annot: String,
     pub value: String,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Variable {
     pub name: String,
     pub type_annot: String,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Function {
     pub name: String,
+    pub variables: Vec<Variable>,
+}
+
+pub fn code_gen_document(
+    document: Document,
+    symbol_table: &mut SymbolTable,
+    op_codes: &mut Vec<OpCode>,
+) {
+    // There should only be one function(main) in the document for now
+    let main_function = document.functions.first().unwrap();
+
+    for statement in &main_function.body {
+        code_gen(statement, symbol_table, op_codes);
+    }
+
+    // Again, for now, we just halt the program after the main function
+    op_codes.push(OpCode::Halt);
 }
 
 pub fn code_gen(
-    ast: AbstractSyntaxTree,
+    ast: &AbstractSyntaxTree,
     symbol_table: &mut SymbolTable,
     op_codes: &mut Vec<OpCode>,
 ) {
     match ast {
-        AbstractSyntaxTree::Const { .. } => {}
         AbstractSyntaxTree::Let {
             name,
             type_annot: _,
             value,
-        } => match *value {
+        } => match *value.to_owned() {
             AbstractSyntaxTree::Name {
                 name: var_or_const_name,
             } => {
@@ -46,9 +61,12 @@ pub fn code_gen(
                 {
                     Some(constant) => {
                         let target_index = symbol_table
+                            .functions
+                            .last()
+                            .unwrap()
                             .variables
                             .iter()
-                            .position(|v| v.name == name)
+                            .position(|v| v.name == name.to_owned())
                             .unwrap();
                         op_codes.push(OpCode::LoadIntConst {
                             arg1: 1,
@@ -61,14 +79,20 @@ pub fn code_gen(
                     }
                     None => {
                         let var_index = symbol_table
+                            .functions
+                            .last()
+                            .unwrap()
                             .variables
                             .iter()
                             .position(|v| v.name == var_or_const_name)
                             .unwrap();
                         let target_index = symbol_table
+                            .functions
+                            .last()
+                            .unwrap()
                             .variables
                             .iter()
-                            .position(|v| v.name == name)
+                            .position(|v| v.name == name.to_owned())
                             .unwrap();
                         op_codes.push(OpCode::Load {
                             arg1: 1,
@@ -84,9 +108,12 @@ pub fn code_gen(
             AbstractSyntaxTree::UpName { name: upname } => match upname.as_str() {
                 "True" => {
                     let target_index = symbol_table
+                        .functions
+                        .last()
+                        .unwrap()
                         .variables
                         .iter()
-                        .position(|v| v.name == name)
+                        .position(|v| v.name == name.to_owned())
                         .unwrap();
                     op_codes.push(OpCode::StoreIntConst {
                         arg1: target_index,
@@ -95,9 +122,12 @@ pub fn code_gen(
                 }
                 "False" => {
                     let target_index = symbol_table
+                        .functions
+                        .last()
+                        .unwrap()
                         .variables
                         .iter()
-                        .position(|v| v.name == name)
+                        .position(|v| v.name == name.to_owned())
                         .unwrap();
                     op_codes.push(OpCode::StoreIntConst {
                         arg1: target_index,
@@ -108,9 +138,12 @@ pub fn code_gen(
             },
             AbstractSyntaxTree::Int { value } => {
                 let target_index = symbol_table
+                    .functions
+                    .last()
+                    .unwrap()
                     .variables
                     .iter()
-                    .position(|v| v.name == name)
+                    .position(|v| v.name == name.to_owned())
                     .unwrap();
                 op_codes.push(OpCode::StoreIntConst {
                     arg1: target_index,
@@ -127,6 +160,9 @@ pub fn code_gen(
                     }
                     AbstractSyntaxTree::Name { name } => {
                         let var_index = symbol_table
+                            .functions
+                            .last()
+                            .unwrap()
                             .variables
                             .iter()
                             .position(|v| v.name == name)
@@ -148,6 +184,9 @@ pub fn code_gen(
                     }
                     AbstractSyntaxTree::Name { name } => {
                         let var_index = symbol_table
+                            .functions
+                            .last()
+                            .unwrap()
                             .variables
                             .iter()
                             .position(|v| v.name == name)
@@ -167,9 +206,12 @@ pub fn code_gen(
                 });
 
                 let target_index = symbol_table
+                    .functions
+                    .last()
+                    .unwrap()
                     .variables
                     .iter()
-                    .position(|v| v.name == name)
+                    .position(|v| v.name == name.to_owned())
                     .unwrap();
 
                 op_codes.push(OpCode::Store {
@@ -187,6 +229,9 @@ pub fn code_gen(
                     }
                     AbstractSyntaxTree::Name { name } => {
                         let var_index = symbol_table
+                            .functions
+                            .last()
+                            .unwrap()
                             .variables
                             .iter()
                             .position(|v| v.name == name)
@@ -216,6 +261,9 @@ pub fn code_gen(
                             }
                             None => {
                                 let var_index = symbol_table
+                                    .functions
+                                    .last()
+                                    .unwrap()
                                     .variables
                                     .iter()
                                     .position(|v| v.name == name)
@@ -237,9 +285,12 @@ pub fn code_gen(
                 });
 
                 let target_index = symbol_table
+                    .functions
+                    .last()
+                    .unwrap()
                     .variables
                     .iter()
-                    .position(|v| v.name == name)
+                    .position(|v| v.name == name.to_owned())
                     .unwrap();
 
                 op_codes.push(OpCode::Store {
@@ -261,18 +312,16 @@ pub fn code_gen(
                     AbstractSyntaxTree::Name { name } => {
                         match symbol_table.constants.iter().find(|v| v.name == name) {
                             Some(constant) => {
-                                match constant.value.as_str() {
-                                    "True" => {
-                                        op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 1 });
-                                    }
-                                    "False" => {
-                                        op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 0 });
-                                    }
-                                    _ => panic!("Invalid value"),
-                                };
+                                op_codes.push(OpCode::LoadIntConst {
+                                    arg1: 1,
+                                    arg2: constant.value.parse().unwrap(),
+                                });
                             }
                             None => {
                                 let var_index = symbol_table
+                                    .functions
+                                    .last()
+                                    .unwrap()
                                     .variables
                                     .iter()
                                     .position(|v| v.name == name)
@@ -312,6 +361,9 @@ pub fn code_gen(
                             }
                             None => {
                                 let var_index = symbol_table
+                                    .functions
+                                    .last()
+                                    .unwrap()
                                     .variables
                                     .iter()
                                     .position(|v| v.name == name)
@@ -333,9 +385,12 @@ pub fn code_gen(
                 });
 
                 let target_index = symbol_table
+                    .functions
+                    .last()
+                    .unwrap()
                     .variables
                     .iter()
-                    .position(|v| v.name == name)
+                    .position(|v| v.name == name.to_owned())
                     .unwrap();
 
                 op_codes.push(OpCode::Store {
@@ -369,6 +424,9 @@ pub fn code_gen(
                             }
                             None => {
                                 let var_index = symbol_table
+                                    .functions
+                                    .last()
+                                    .unwrap()
                                     .variables
                                     .iter()
                                     .position(|v| v.name == var_name)
@@ -408,6 +466,9 @@ pub fn code_gen(
                             }
                             None => {
                                 let var_index = symbol_table
+                                    .functions
+                                    .last()
+                                    .unwrap()
                                     .variables
                                     .iter()
                                     .position(|v| v.name == name)
@@ -429,9 +490,12 @@ pub fn code_gen(
                 });
 
                 let target_index = symbol_table
+                    .functions
+                    .last()
+                    .unwrap()
                     .variables
                     .iter()
-                    .position(|v| v.name == name)
+                    .position(|v| v.name == name.to_owned())
                     .unwrap();
 
                 op_codes.push(OpCode::Store {
@@ -460,6 +524,9 @@ pub fn code_gen(
                             }
                             None => {
                                 let var_index = symbol_table
+                                    .functions
+                                    .last()
+                                    .unwrap()
                                     .variables
                                     .iter()
                                     .position(|v| v.name == name)
@@ -477,9 +544,12 @@ pub fn code_gen(
                 op_codes.push(OpCode::Not { value: 1 });
 
                 let target_index = symbol_table
+                    .functions
+                    .last()
+                    .unwrap()
                     .variables
                     .iter()
-                    .position(|v| v.name == name)
+                    .position(|v| v.name == name.to_owned())
                     .unwrap();
 
                 op_codes.push(OpCode::Store {
@@ -488,7 +558,6 @@ pub fn code_gen(
                 });
             }
             AbstractSyntaxTree::LtGt { left, right } => {
-                // concatinate two strings
                 match *left {
                     AbstractSyntaxTree::String { value } => {
                         op_codes.push(OpCode::LoadStringConst {
@@ -506,6 +575,9 @@ pub fn code_gen(
                             }
                             None => {
                                 let var_index = symbol_table
+                                    .functions
+                                    .last()
+                                    .unwrap()
                                     .variables
                                     .iter()
                                     .position(|v| v.name == name)
@@ -537,6 +609,9 @@ pub fn code_gen(
                             }
                             None => {
                                 let var_index = symbol_table
+                                    .functions
+                                    .last()
+                                    .unwrap()
                                     .variables
                                     .iter()
                                     .position(|v| v.name == name)
@@ -558,9 +633,12 @@ pub fn code_gen(
                 });
 
                 let target_index = symbol_table
+                    .functions
+                    .last()
+                    .unwrap()
                     .variables
                     .iter()
-                    .position(|v| v.name == name)
+                    .position(|v| v.name == name.to_owned())
                     .unwrap();
 
                 op_codes.push(OpCode::Store {
@@ -570,9 +648,12 @@ pub fn code_gen(
             }
             AbstractSyntaxTree::String { value } => {
                 let target_index = symbol_table
+                    .functions
+                    .last()
+                    .unwrap()
                     .variables
                     .iter()
-                    .position(|v| v.name == name)
+                    .position(|v| v.name == name.to_owned())
                     .unwrap();
                 op_codes.push(OpCode::StoreStringConst {
                     arg1: target_index,
@@ -581,17 +662,10 @@ pub fn code_gen(
             }
             value => panic!("Invalid value: {:?}", value),
         },
-        AbstractSyntaxTree::Fn { name, body } => {
-            symbol_table.functions.push(Function { name: name.clone() });
-            for statement in *body {
-                code_gen(statement, symbol_table, op_codes);
-            }
-        }
         AbstractSyntaxTree::Block { statements } => {
             for statement in statements {
                 code_gen(statement, symbol_table, op_codes);
             }
-            op_codes.push(OpCode::Halt);
         }
         AbstractSyntaxTree::Call { name, args } => match name.as_str() {
             "print_integer" => match args.first() {
@@ -614,6 +688,9 @@ pub fn code_gen(
                             }
                             None => {
                                 let var_index = symbol_table
+                                    .functions
+                                    .last()
+                                    .unwrap()
                                     .variables
                                     .iter()
                                     .position(|v| v.name == *name)
@@ -652,6 +729,9 @@ pub fn code_gen(
                             }
                             None => {
                                 let var_index = symbol_table
+                                    .functions
+                                    .last()
+                                    .unwrap()
                                     .variables
                                     .iter()
                                     .position(|v| v.name == *name)
@@ -679,6 +759,9 @@ pub fn code_gen(
                     }
                     AbstractSyntaxTree::Name { name } => {
                         let var_index = symbol_table
+                            .functions
+                            .last()
+                            .unwrap()
                             .variables
                             .iter()
                             .position(|v| v.name == *name)

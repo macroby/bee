@@ -1,5 +1,5 @@
 use core::panic;
-use std::{collections::HashMap, fs};
+use std::collections::HashMap;
 
 mod ast;
 mod code_gen;
@@ -8,29 +8,60 @@ mod opcode;
 mod parse;
 mod token;
 
-use ast::AbstractSyntaxTree;
-use code_gen::{code_gen, Constant, Function, SymbolTable, Variable};
+use ast::{AbstractSyntaxTree, Document};
+use code_gen::{code_gen_document, Constant, Function, SymbolTable, Variable};
 use lex::lex;
 use opcode::OpCode;
 use parse::parse;
 
 fn main() {
-    let contents = fs::read_to_string("test.bee").expect("Should have been able to read the file");
-    let tokens = lex(contents.clone());
-    let ast = parse(tokens);
-    println!("AST:");
-    println!("{:?}", ast);
+    let contents = r#"const ctest: Integer = 5
+    const string_const_test: String = "constant"
+    const bool_const_test: Bool = True
+    
+    fn main() {
+      let stest: String = "hello"
+      let concat_test: String = stest <> " world"
+      let string_const_concat_test: String = stest <> string_const_test
+    
+      print_string(stest)
+      print_string(concat_test)
+      print_string(string_const_concat_test)
+    
+      let btest: Bool = True
+      let btest_and: Bool = btest && True
+      let btest_or: Bool = btest || False
+      let btest_not_1: Bool = !btest
+      let btest_not_2: Bool = !False
+      let bool_const_and_test: Bool = bool_const_test && True
+      print_bool(bool_const_and_test)
+      print_bool(btest_and)
+      print_bool(btest_or)
+      print_bool(btest_not_1)
+      print_bool(btest_not_2)
+    
+      let one: Integer = 1
+      let one_again: Integer = one
+      let five: Integer = one + 4
+      let itest: Integer = five - 4
+      let ctest_add: Integer = 1 + ctest
+      print_integer(itest)
+      print_integer(ctest_add)
+    }"#;
+    let tokens = lex(contents.to_string());
+    let document = parse(tokens);
+    println!("Document:");
+    println!("{:?}", document);
     let mut symbol_table = SymbolTable {
-        variables: Vec::new(),
         functions: Vec::new(),
         constants: Vec::new(),
     };
-    analyze(ast.clone(), &mut symbol_table);
+    analyze_document(document.clone(), &mut symbol_table);
     println!("Symbol Table:");
     println!("{:?}", symbol_table);
 
     let mut op_codes = Vec::new();
-    code_gen(ast.clone(), &mut symbol_table, &mut op_codes);
+    code_gen_document(document, &mut symbol_table, &mut op_codes);
 
     println!("Codegen Output:");
     for op_code in op_codes.clone() {
@@ -118,7 +149,7 @@ pub trait Operation {
 }
 
 const INIT: Value = Value::Int(0);
-fn interpret(op_codes: Vec<OpCode>) {
+pub fn interpret(op_codes: Vec<OpCode>) {
     let mut registers: [Value; 32] = [INIT; 32];
 
     // Does this need to be a hash map? since everything is index by usize
@@ -178,48 +209,40 @@ fn interpret(op_codes: Vec<OpCode>) {
     }
 }
 
-fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
+pub fn analyze_document(document: Document, symbol_table: &mut SymbolTable) {
+    for constant in document.constants {
+        symbol_table.constants.push(Constant {
+            name: constant.name.clone(),
+            type_annot: constant.type_annot.clone(),
+            value: match constant.value {
+                AbstractSyntaxTree::Int { value } => value.to_string(),
+                AbstractSyntaxTree::String { value } => value.clone(),
+                AbstractSyntaxTree::UpName { name } => {
+                    if name == "True" {
+                        "1".to_owned()
+                    } else if name == "False" {
+                        "0".to_owned()
+                    } else {
+                        panic!("Invalid value")
+                    }
+                }
+                _ => panic!("Invalid value"),
+            },
+        });
+    }
+    for function in document.functions {
+        symbol_table.functions.push(Function {
+            name: function.name.clone(),
+            variables: Vec::new(),
+        });
+        for statement in function.body {
+            analyze(statement, symbol_table);
+        }
+    }
+}
+
+pub fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
     match ast {
-        AbstractSyntaxTree::Const {
-            name,
-            type_annot,
-            value,
-        } => match *value {
-            AbstractSyntaxTree::Int { value: int_value } => {
-                if type_annot != "Integer" {
-                    panic!("Type mismatch");
-                }
-                symbol_table.constants.push(Constant {
-                    name: name.clone(),
-                    type_annot: type_annot.clone(),
-                    value: int_value.to_string(),
-                });
-            }
-            AbstractSyntaxTree::String {
-                value: string_value,
-            } => {
-                if type_annot != "String" {
-                    panic!("Type mismatch");
-                }
-                symbol_table.constants.push(Constant {
-                    name: name.clone(),
-                    type_annot: type_annot.clone(),
-                    value: string_value.clone(),
-                });
-            }
-            AbstractSyntaxTree::UpName { name: bool_name } => {
-                if type_annot == "Bool" && (bool_name == "True" || bool_name == "False") {
-                } else {
-                    panic!("Type mismatch");
-                }
-                symbol_table.constants.push(Constant {
-                    name: name.clone(),
-                    type_annot: type_annot.clone(),
-                    value: bool_name.clone(),
-                });
-            }
-            _ => panic!("Invalid value"),
-        },
         AbstractSyntaxTree::Let {
             name,
             type_annot,
@@ -243,14 +266,29 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                     }
                 }
                 AbstractSyntaxTree::Name { name } => {
-                    let variable = symbol_table.variables.iter().find(|v| v.name == name);
-                    match variable {
+                    match symbol_table.constants.iter().find(|v| v.name == name) {
                         Some(v) => {
                             if v.type_annot != type_annot {
                                 panic!("Type mismatch");
                             }
                         }
-                        None => panic!("Variable not found"),
+                        None => {
+                            let variable = symbol_table
+                                .functions
+                                .last()
+                                .unwrap()
+                                .variables
+                                .iter()
+                                .find(|v| v.name == name);
+                            match variable {
+                                Some(v) => {
+                                    if v.type_annot != type_annot {
+                                        panic!("Type mismatch");
+                                    }
+                                }
+                                None => panic!("Variable not found"),
+                            }
+                        }
                     }
                 }
                 AbstractSyntaxTree::Plus { left, right } => {
@@ -272,8 +310,13 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                                     }
                                 }
                                 None => {
-                                    let variable =
-                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    let variable = symbol_table
+                                        .functions
+                                        .last()
+                                        .unwrap()
+                                        .variables
+                                        .iter()
+                                        .find(|v| v.name == name);
                                     match variable {
                                         Some(v) => {
                                             if v.type_annot != type_annot {
@@ -302,8 +345,13 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                                     }
                                 }
                                 None => {
-                                    let variable =
-                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    let variable = symbol_table
+                                        .functions
+                                        .last()
+                                        .unwrap()
+                                        .variables
+                                        .iter()
+                                        .find(|v| v.name == name);
                                     match variable {
                                         Some(v) => {
                                             if v.type_annot != type_annot {
@@ -337,8 +385,13 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                                     }
                                 }
                                 None => {
-                                    let variable =
-                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    let variable = symbol_table
+                                        .functions
+                                        .last()
+                                        .unwrap()
+                                        .variables
+                                        .iter()
+                                        .find(|v| v.name == name);
                                     match variable {
                                         Some(v) => {
                                             if v.type_annot != type_annot {
@@ -366,8 +419,13 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                                     }
                                 }
                                 None => {
-                                    let variable =
-                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    let variable = symbol_table
+                                        .functions
+                                        .last()
+                                        .unwrap()
+                                        .variables
+                                        .iter()
+                                        .find(|v| v.name == name);
                                     match variable {
                                         Some(v) => {
                                             if v.type_annot != type_annot {
@@ -401,8 +459,13 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                                     }
                                 }
                                 None => {
-                                    let variable =
-                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    let variable = symbol_table
+                                        .functions
+                                        .last()
+                                        .unwrap()
+                                        .variables
+                                        .iter()
+                                        .find(|v| v.name == name);
                                     match variable {
                                         Some(v) => {
                                             if v.type_annot != type_annot {
@@ -430,8 +493,13 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                                     }
                                 }
                                 None => {
-                                    let variable =
-                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    let variable = symbol_table
+                                        .functions
+                                        .last()
+                                        .unwrap()
+                                        .variables
+                                        .iter()
+                                        .find(|v| v.name == name);
                                     match variable {
                                         Some(v) => {
                                             if v.type_annot != type_annot {
@@ -466,8 +534,13 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                                     }
                                 }
                                 None => {
-                                    let variable =
-                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    let variable = symbol_table
+                                        .functions
+                                        .last()
+                                        .unwrap()
+                                        .variables
+                                        .iter()
+                                        .find(|v| v.name == name);
                                     match variable {
                                         Some(v) => {
                                             if v.type_annot != type_annot {
@@ -495,8 +568,13 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                                     }
                                 }
                                 None => {
-                                    let variable =
-                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    let variable = symbol_table
+                                        .functions
+                                        .last()
+                                        .unwrap()
+                                        .variables
+                                        .iter()
+                                        .find(|v| v.name == name);
                                     match variable {
                                         Some(v) => {
                                             if v.type_annot != type_annot {
@@ -530,8 +608,13 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                                     }
                                 }
                                 None => {
-                                    let variable =
-                                        symbol_table.variables.iter().find(|v| v.name == name);
+                                    let variable = symbol_table
+                                        .functions
+                                        .last()
+                                        .unwrap()
+                                        .variables
+                                        .iter()
+                                        .find(|v| v.name == name);
                                     match variable {
                                         Some(v) => {
                                             if v.type_annot != type_annot {
@@ -548,16 +631,14 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                 }
                 _ => panic!("Invalid value"),
             }
-            symbol_table.variables.push(Variable {
+
+            let mut new_function = symbol_table.functions.pop().expect("Function not found");
+            new_function.variables.push(Variable {
                 name: name.clone(),
                 type_annot: type_annot.clone(),
             });
-        }
-        AbstractSyntaxTree::Fn { name, body } => {
-            symbol_table.functions.push(Function { name: name.clone() });
-            for statement in *body {
-                analyze(statement, symbol_table);
-            }
+
+            symbol_table.functions.push(new_function);
         }
         AbstractSyntaxTree::Block { statements } => {
             for statement in statements {
@@ -594,56 +675,58 @@ fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use code_gen::code_gen_document;
+    use lex::lex;
+    use parse::parse;
     #[test]
     fn it_works() {
         let contents = r#"const ctest: Integer = 5
-            const string_const_test: String = "constant"
-            const bool_const_test: Bool = True
-            
-            fn main() {
-              let stest: String = "hello"
-              let concat_test: String = stest <> " world"
-              let string_const_concat_test: String = stest <> string_const_test
-            
-              print_string(stest)
-              print_string(concat_test)
-              print_string(string_const_concat_test)
-            
-              let btest: Bool = True
-              let btest_and: Bool = btest && True
-              let btest_or: Bool = btest || False
-              let btest_not_1: Bool = !btest
-              let btest_not_2: Bool = !False
-              let bool_const_and_test: Bool = bool_const_test && True
-              print_bool(bool_const_and_test)
-              print_bool(btest_and)
-              print_bool(btest_or)
-              print_bool(btest_not_1)
-              print_bool(btest_not_2)
-            
-              let one: Integer = 1
-              let one_again: Integer = one
-              let five: Integer = one + 4
-              let itest: Integer = five - 4
-              let ctest_add: Integer = 1 + ctest
-              print_integer(itest)
-              print_integer(ctest_add)
-            }"#;
+        const string_const_test: String = "constant"
+        const bool_const_test: Bool = True
+        
+        fn main() {
+          let stest: String = "hello"
+          let concat_test: String = stest <> " world"
+          let string_const_concat_test: String = stest <> string_const_test
+        
+          print_string(stest)
+          print_string(concat_test)
+          print_string(string_const_concat_test)
+        
+          let btest: Bool = True
+          let btest_and: Bool = btest && True
+          let btest_or: Bool = btest || False
+          let btest_not_1: Bool = !btest
+          let btest_not_2: Bool = !False
+          let bool_const_and_test: Bool = bool_const_test && True
+          print_bool(bool_const_and_test)
+          print_bool(btest_and)
+          print_bool(btest_or)
+          print_bool(btest_not_1)
+          print_bool(btest_not_2)
+        
+          let one: Integer = 1
+          let one_again: Integer = one
+          let five: Integer = one + 4
+          let itest: Integer = five - 4
+          let ctest_add: Integer = 1 + ctest
+          print_integer(itest)
+          print_integer(ctest_add)
+        }"#;
         let tokens = lex(contents.to_string());
-        let ast = parse(tokens);
-        println!("AST:");
-        println!("{:?}", ast);
+        let document = parse(tokens);
+        println!("Document:");
+        println!("{:?}", document);
         let mut symbol_table = SymbolTable {
-            variables: Vec::new(),
             functions: Vec::new(),
             constants: Vec::new(),
         };
-        analyze(ast.clone(), &mut symbol_table);
+        analyze_document(document.clone(), &mut symbol_table);
         println!("Symbol Table:");
         println!("{:?}", symbol_table);
 
         let mut op_codes = Vec::new();
-        code_gen(ast.clone(), &mut symbol_table, &mut op_codes);
+        code_gen_document(document, &mut symbol_table, &mut op_codes);
 
         println!("Codegen Output:");
         for op_code in op_codes.clone() {

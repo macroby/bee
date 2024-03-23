@@ -1,10 +1,22 @@
 #[derive(Debug, Clone)]
+pub struct Document {
+    pub constants: Vec<Constant>,
+    pub functions: Vec<Function>,
+}
+#[derive(Debug, Clone)]
+pub struct Function {
+    pub name: String,
+    pub body: Vec<AbstractSyntaxTree>,
+}
+#[derive(Debug, Clone)]
+pub struct Constant {
+    pub name: String,
+    pub type_annot: String,
+    pub value: AbstractSyntaxTree,
+}
+
+#[derive(Debug, Clone)]
 pub enum AbstractSyntaxTree {
-    Const {
-        name: String,
-        type_annot: String,
-        value: Box<AbstractSyntaxTree>,
-    },
     Let {
         name: String,
         type_annot: String,
@@ -44,11 +56,6 @@ pub enum AbstractSyntaxTree {
     },
     Not {
         value: Box<AbstractSyntaxTree>,
-    },
-    Fn {
-        name: String,
-        // args: Vec<String>,
-        body: Box<Vec<AbstractSyntaxTree>>,
     },
     Call {
         name: String,
