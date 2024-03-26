@@ -1,4 +1,8 @@
+- lists
+- convert string concat to string_concat()
+- implement separate bytecodes for string concat
+- implement concat for lists
+- implement prepend for lists
+- implement case statement
 - equality
-- floats
-- statements and operator precedence
 - type aliases
