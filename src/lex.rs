@@ -49,7 +49,7 @@ pub fn lex(source: String) -> Vec<Token> {
                     }
                 }
             }
-            // Int
+            // Int or Float
             '0'..='9' => {
                 let mut value = String::new();
                 value.push(c);
@@ -59,10 +59,27 @@ pub fn lex(source: String) -> Vec<Token> {
                             value.push(c);
                             source.next();
                         }
-                        _ => break,
+                        '.' => {
+                            value.push(c);
+                            source.next();
+                            while let Some(&c) = source.peek() {
+                                match c {
+                                    '0'..='9' => {
+                                        value.push(c);
+                                        source.next();
+                                    }
+                                    _ => break,
+                                }
+                            }
+                            tokens.push(Token::Float { value });
+                            break;
+                        }
+                        _ => {
+                            tokens.push(Token::Int { value });
+                            break;
+                        }
                     }
                 }
-                tokens.push(Token::Int { value });
             }
             // String
             '"' => {

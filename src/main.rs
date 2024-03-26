@@ -52,6 +52,7 @@ fn main() {
 #[derive(Debug, Clone)]
 enum Value {
     Int(usize),
+    Float(f64),
     String(Box<str>),
 }
 
@@ -60,6 +61,10 @@ impl Operation for Value {
         match self {
             Value::Int(value) => match other {
                 Value::Int(other_value) => Value::Int(value + other_value),
+                _ => panic!("Invalid operation"),
+            },
+            Value::Float(value) => match other {
+                Value::Float(other_value) => Value::Float(value + other_value),
                 _ => panic!("Invalid operation"),
             },
             Value::String(_) => panic!("Invalid operation"),
@@ -72,6 +77,10 @@ impl Operation for Value {
                 Value::Int(other_value) => Value::Int(value - other_value),
                 _ => panic!("Invalid operation"),
             },
+            Value::Float(value) => match other {
+                Value::Float(other_value) => Value::Float(value - other_value),
+                _ => panic!("Invalid operation"),
+            },
             Value::String(_) => panic!("Invalid operation"),
         }
     }
@@ -82,6 +91,7 @@ impl Operation for Value {
                 Value::Int(other_value) => Value::Int(value & other_value),
                 _ => panic!("Invalid operation"),
             },
+            Value::Float(_) => panic!("Invalid operation"),
             Value::String(_) => panic!("Invalid operation"),
         }
     }
@@ -92,6 +102,7 @@ impl Operation for Value {
                 Value::Int(other_value) => Value::Int(value | other_value),
                 _ => panic!("Invalid operation"),
             },
+            Value::Float(_) => panic!("Invalid operation"),
             Value::String(_) => panic!("Invalid operation"),
         }
     }
@@ -99,6 +110,7 @@ impl Operation for Value {
     fn not(&self) -> Self {
         match self {
             Value::Int(value) => Value::Int(value ^ 1),
+            Value::Float(_) => panic!("Invalid operation"),
             Value::String(_) => panic!("Invalid operation"),
         }
     }
@@ -112,6 +124,7 @@ impl Operation for Value {
                 _ => panic!("Invalid operation"),
             },
             Value::Int(_) => panic!("Invalid operation"),
+            Value::Float(_) => panic!("Invalid operation"),
         }
     }
 }
@@ -160,6 +173,9 @@ pub fn interpret(op_codes: Vec<OpCode>) {
             OpCode::LoadIntConst { arg1, arg2 } => {
                 registers[*arg1] = Value::Int(*arg2);
             }
+            OpCode::LoadFloatConst { arg1, arg2 } => {
+                registers[*arg1] = Value::Float(*arg2);
+            }
             OpCode::LoadStringConst { arg1, arg2 } => {
                 registers[*arg1] = Value::String(arg2.clone());
             }
@@ -171,6 +187,9 @@ pub fn interpret(op_codes: Vec<OpCode>) {
             }
             OpCode::StoreIntConst { arg1, arg2 } => {
                 variables.insert(*arg1, Value::Int(*arg2));
+            }
+            OpCode::StoreFloatConst { arg1, arg2 } => {
+                variables.insert(*arg1, Value::Float(*arg2));
             }
             OpCode::StoreStringConst { arg1, arg2 } => {
                 variables.insert(*arg1, Value::String(arg2.clone()));
@@ -193,6 +212,7 @@ pub fn analyze_document(document: Document, symbol_table: &mut SymbolTable) {
             type_annot: constant.type_annot.clone(),
             value: match constant.value {
                 AbstractSyntaxTree::Int { value } => value.to_string(),
+                AbstractSyntaxTree::Float { value } => value.to_string(),
                 AbstractSyntaxTree::String { value } => value.clone(),
                 AbstractSyntaxTree::UpName { name } => {
                     if name == "True" {
@@ -228,6 +248,11 @@ pub fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
             match *value {
                 AbstractSyntaxTree::Int { .. } => {
                     if type_annot != "Integer" {
+                        panic!("Type mismatch");
+                    }
+                }
+                AbstractSyntaxTree::Float { .. } => {
+                    if type_annot != "Float" {
                         panic!("Type mismatch");
                     }
                 }
@@ -295,6 +320,44 @@ pub fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                                             match variable {
                                                 Some(v) => {
                                                     if v.type_annot != "Integer" {
+                                                        panic!("Type mismatch");
+                                                    }
+                                                }
+                                                None => panic!("Variable not found"),
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => panic!("Invalid value"),
+                            }
+                        }
+                    }
+                    "add_float" | "sub_float" => {
+                        for arg in args {
+                            match arg {
+                                AbstractSyntaxTree::Float { .. } => {
+                                    if type_annot != "Float" {
+                                        panic!("Type mismatch");
+                                    }
+                                }
+                                AbstractSyntaxTree::Name { name } => {
+                                    match symbol_table.constants.iter().find(|v| v.name == *name) {
+                                        Some(v) => {
+                                            if v.type_annot != "Float" {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => {
+                                            let variable = symbol_table
+                                                .functions
+                                                .last()
+                                                .unwrap()
+                                                .variables
+                                                .iter()
+                                                .find(|v| v.name == *name);
+                                            match variable {
+                                                Some(v) => {
+                                                    if v.type_annot != "Float" {
                                                         panic!("Type mismatch");
                                                     }
                                                 }
@@ -512,7 +575,7 @@ mod tests {
     use lex::lex;
     use parse::parse;
     #[test]
-    fn it_works() {
+    fn int_const_sub_add_print() {
         let contents = r#"
             const ctest: Integer = 5
     
@@ -524,6 +587,117 @@ mod tests {
                 let ctest_add: Integer = add(1, ctest)
                 print_integer(itest)
                 print_integer(ctest_add)
+            }"#;
+        let tokens = lex(contents.to_string());
+        let document = parse(tokens);
+        println!("Document:");
+        println!("{:?}", document);
+        let mut symbol_table = SymbolTable {
+            functions: Vec::new(),
+            constants: Vec::new(),
+        };
+        analyze_document(document.clone(), &mut symbol_table);
+        println!("Symbol Table:");
+        println!("{:?}", symbol_table);
+
+        let mut op_codes = Vec::new();
+        code_gen_document(document, &mut symbol_table, &mut op_codes);
+
+        println!("Codegen Output:");
+        for op_code in op_codes.clone() {
+            println!("{:?}", op_code);
+        }
+
+        println!("Interpretation:");
+        interpret(op_codes);
+    }
+
+    #[test]
+    fn string_const_concat_print() {
+        let contents = r#"
+            const ctest: String = "Hello"
+    
+            fn main() {
+                let one: String = "World"
+                let one_again: String = one
+                let five: String = concat(one, " ")
+                let itest: String = concat(five, ctest)
+                print_string(itest)
+            }"#;
+        let tokens = lex(contents.to_string());
+        let document = parse(tokens);
+        println!("Document:");
+        println!("{:?}", document);
+        let mut symbol_table = SymbolTable {
+            functions: Vec::new(),
+            constants: Vec::new(),
+        };
+        analyze_document(document.clone(), &mut symbol_table);
+        println!("Symbol Table:");
+        println!("{:?}", symbol_table);
+
+        let mut op_codes = Vec::new();
+        code_gen_document(document, &mut symbol_table, &mut op_codes);
+
+        println!("Codegen Output:");
+        for op_code in op_codes.clone() {
+            println!("{:?}", op_code);
+        }
+
+        println!("Interpretation:");
+        interpret(op_codes);
+    }
+
+    #[test]
+    fn bool_const_and_or_not_print() {
+        let contents = r#"
+            const ctest: Bool = True
+    
+            fn main() {
+                let one: Bool = False
+                let one_again: Bool = one
+                let five: Bool = and(one, True)
+                let itest: Bool = or(five, ctest)
+                let not_itest: Bool = not(itest)
+                print_bool(not_itest)
+            }"#;
+        let tokens = lex(contents.to_string());
+        let document = parse(tokens);
+        println!("Document:");
+        println!("{:?}", document);
+        let mut symbol_table = SymbolTable {
+            functions: Vec::new(),
+            constants: Vec::new(),
+        };
+        analyze_document(document.clone(), &mut symbol_table);
+        println!("Symbol Table:");
+        println!("{:?}", symbol_table);
+
+        let mut op_codes = Vec::new();
+        code_gen_document(document, &mut symbol_table, &mut op_codes);
+
+        println!("Codegen Output:");
+        for op_code in op_codes.clone() {
+            println!("{:?}", op_code);
+        }
+
+        println!("Interpretation:");
+        interpret(op_codes);
+    }
+
+    #[test]
+    fn float_add_sub_print() {
+        let contents = r#"
+            const ctest: Float = 5.0
+    
+            fn main() {
+                let one: Float = 1.0
+                let one_again: Float = one
+                let five: Float = add_float(one, 4.0)
+                let itest: Float = sub_float(five, 4.0)
+                let ctest_add: Float = add_float(1.0, ctest)
+                print_float(itest)
+                print_float(ctest_add)
             }"#;
         let tokens = lex(contents.to_string());
         let document = parse(tokens);

@@ -25,6 +25,9 @@ pub enum AbstractSyntaxTree {
     Int {
         value: usize,
     },
+    Float {
+        value: f64,
+    },
     String {
         value: String,
     },

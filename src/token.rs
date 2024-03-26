@@ -3,6 +3,7 @@ pub enum Token {
     Name { name: String },
     UpName { name: String },
     Int { value: String },
+    Float { value: String },
     String { value: String },
     // Groupings
     LeftParen,  // (

@@ -75,6 +75,9 @@ fn parse_expression(
         Some(Token::Int { value }) => AbstractSyntaxTree::Int {
             value: value.parse().unwrap(),
         },
+        Some(Token::Float { value }) => AbstractSyntaxTree::Float {
+            value: value.parse().unwrap(),
+        },
         Some(Token::String { value }) => AbstractSyntaxTree::String {
             value: value.clone(),
         },

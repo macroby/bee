@@ -36,6 +36,10 @@ pub enum OpCode {
         arg1: usize,
         arg2: usize,
     },
+    LoadFloatConst {
+        arg1: usize,
+        arg2: f64,
+    },
     LoadStringConst {
         arg1: usize,
         arg2: Box<str>,
@@ -51,6 +55,10 @@ pub enum OpCode {
     StoreIntConst {
         arg1: usize,
         arg2: usize,
+    },
+    StoreFloatConst {
+        arg1: usize,
+        arg2: f64,
     },
     StoreStringConst {
         arg1: usize,
