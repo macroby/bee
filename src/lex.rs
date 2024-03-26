@@ -13,33 +13,7 @@ pub fn lex(source: String) -> Vec<Token> {
             ')' => tokens.push(Token::RightParen),
             '{' => tokens.push(Token::LeftBrace),
             '}' => tokens.push(Token::RightBrace),
-            // Int Operators
-            '+' => tokens.push(Token::Plus),
-            '-' => tokens.push(Token::Minus),
-            // String Operators
-            '<' => match source.peek() {
-                Some(&'>') => {
-                    source.next();
-                    tokens.push(Token::LtGt);
-                }
-                _ => tokens.push(Token::UnexpectedGrapheme(c.to_string())),
-            },
-            // Boolean Operators
-            '&' => match source.peek() {
-                Some(&'&') => {
-                    source.next();
-                    tokens.push(Token::And);
-                }
-                _ => tokens.push(Token::UnexpectedGrapheme(c.to_string())),
-            },
-            '|' => match source.peek() {
-                Some(&'|') => {
-                    source.next();
-                    tokens.push(Token::Or);
-                }
-                _ => tokens.push(Token::UnexpectedGrapheme(c.to_string())),
-            },
-            '!' => tokens.push(Token::Not),
+            ',' => tokens.push(Token::Comma),
             // Other Punctuation
             ':' => tokens.push(Token::Colon),
             '=' => tokens.push(Token::Equal),

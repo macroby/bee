@@ -15,43 +15,20 @@ use opcode::OpCode;
 use parse::parse;
 
 fn main() {
-    let contents = r#"const ctest: Integer = 5
-    const string_const_test: String = "constant"
-    const bool_const_test: Bool = True
+    let contents = r#"
+    const ctest: Integer = 5
     
     fn main() {
-      let stest: String = "hello"
-      let concat_test: String = stest <> " world"
-      let string_const_concat_test: String = stest <> string_const_test
-    
-      print_string(stest)
-      print_string(concat_test)
-      print_string(string_const_concat_test)
-    
-      let btest: Bool = True
-      let btest_and: Bool = btest && True
-      let btest_or: Bool = btest || False
-      let btest_not_1: Bool = !btest
-      let btest_not_2: Bool = !False
-      let bool_const_and_test: Bool = bool_const_test && True
-      print_bool(bool_const_and_test)
-      print_bool(btest_and)
-      print_bool(btest_or)
-      print_bool(btest_not_1)
-      print_bool(btest_not_2)
-    
       let one: Integer = 1
       let one_again: Integer = one
-      let five: Integer = one + 4
-      let itest: Integer = five - 4
-      let ctest_add: Integer = 1 + ctest
+      let five: Integer = add(one, 4)
+      let itest: Integer = sub(five, 4)
+      let ctest_add: Integer = add(1, ctest)
       print_integer(itest)
       print_integer(ctest_add)
     }"#;
     let tokens = lex(contents.to_string());
     let document = parse(tokens);
-    println!("Document:");
-    println!("{:?}", document);
     let mut symbol_table = SymbolTable {
         functions: Vec::new(),
         constants: Vec::new(),
@@ -291,345 +268,224 @@ pub fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                         }
                     }
                 }
-                AbstractSyntaxTree::Plus { left, right } => {
-                    match type_annot.as_str() {
-                        "Integer" => (),
-                        _ => panic!("Invalid type"),
-                    }
-                    match *left {
-                        AbstractSyntaxTree::Int { value: _ } => {
-                            if type_annot != "Integer" {
-                                panic!("Type mismatch");
-                            }
-                        }
-                        AbstractSyntaxTree::Name { name } => {
-                            match symbol_table.constants.iter().find(|v| v.name == name) {
-                                Some(v) => {
-                                    if v.type_annot != type_annot {
+                AbstractSyntaxTree::Call { name, args } => match name.as_str() {
+                    "add" | "sub" => {
+                        for arg in args {
+                            match arg {
+                                AbstractSyntaxTree::Int { .. } => {
+                                    if type_annot != "Integer" {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => {
-                                    let variable = symbol_table
-                                        .functions
-                                        .last()
-                                        .unwrap()
-                                        .variables
-                                        .iter()
-                                        .find(|v| v.name == name);
-                                    match variable {
+                                AbstractSyntaxTree::Name { name } => {
+                                    match symbol_table.constants.iter().find(|v| v.name == *name) {
                                         Some(v) => {
-                                            if v.type_annot != type_annot {
+                                            if v.type_annot != "Integer" {
                                                 panic!("Type mismatch");
                                             }
                                         }
-                                        None => panic!("Variable not found"),
+                                        None => {
+                                            let variable = symbol_table
+                                                .functions
+                                                .last()
+                                                .unwrap()
+                                                .variables
+                                                .iter()
+                                                .find(|v| v.name == *name);
+                                            match variable {
+                                                Some(v) => {
+                                                    if v.type_annot != "Integer" {
+                                                        panic!("Type mismatch");
+                                                    }
+                                                }
+                                                None => panic!("Variable not found"),
+                                            }
+                                        }
                                     }
                                 }
+                                _ => panic!("Invalid value"),
                             }
                         }
-                        _ => panic!("Invalid value"),
                     }
-                    match *right {
-                        AbstractSyntaxTree::Int { .. } => {
-                            if type_annot != "Integer" {
-                                panic!("Type mismatch");
-                            }
-                        }
-                        AbstractSyntaxTree::Name { name } => {
-                            // we need to check if name refers to some constant first and if not then check variables
-                            match symbol_table.constants.iter().find(|v| v.name == name) {
-                                Some(v) => {
-                                    if v.type_annot != type_annot {
+                    "and" | "or" => {
+                        for arg in args {
+                            match arg {
+                                AbstractSyntaxTree::UpName { .. } => {
+                                    if type_annot != "Bool" {
                                         panic!("Type mismatch");
                                     }
                                 }
-                                None => {
-                                    let variable = symbol_table
-                                        .functions
-                                        .last()
-                                        .unwrap()
-                                        .variables
-                                        .iter()
-                                        .find(|v| v.name == name);
-                                    match variable {
+                                AbstractSyntaxTree::Name { name } => {
+                                    match symbol_table.constants.iter().find(|v| v.name == *name) {
                                         Some(v) => {
-                                            if v.type_annot != type_annot {
+                                            if v.type_annot != "Bool" {
                                                 panic!("Type mismatch");
                                             }
                                         }
-                                        None => panic!("Variable not found"),
+                                        None => {
+                                            let variable = symbol_table
+                                                .functions
+                                                .last()
+                                                .unwrap()
+                                                .variables
+                                                .iter()
+                                                .find(|v| v.name == *name);
+                                            match variable {
+                                                Some(v) => {
+                                                    if v.type_annot != "Bool" {
+                                                        panic!("Type mismatch");
+                                                    }
+                                                }
+                                                None => panic!("Variable not found"),
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => panic!("Invalid value"),
+                            }
+                        }
+                    }
+                    "not" => {
+                        for arg in args {
+                            match arg {
+                                AbstractSyntaxTree::UpName { .. } => {
+                                    if type_annot != "Bool" {
+                                        panic!("Type mismatch");
+                                    }
+                                }
+                                AbstractSyntaxTree::Name { name } => {
+                                    match symbol_table.constants.iter().find(|v| v.name == *name) {
+                                        Some(v) => {
+                                            if v.type_annot != "Bool" {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => {
+                                            let variable = symbol_table
+                                                .functions
+                                                .last()
+                                                .unwrap()
+                                                .variables
+                                                .iter()
+                                                .find(|v| v.name == *name);
+                                            match variable {
+                                                Some(v) => {
+                                                    if v.type_annot != "Bool" {
+                                                        panic!("Type mismatch");
+                                                    }
+                                                }
+                                                None => panic!("Variable not found"),
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => panic!("Invalid value"),
+                            }
+                        }
+                    }
+                    "concat" => {
+                        for arg in args {
+                            match arg {
+                                AbstractSyntaxTree::String { .. } => {
+                                    if type_annot != "String" {
+                                        panic!("Type mismatch");
+                                    }
+                                }
+                                AbstractSyntaxTree::Name { name } => {
+                                    match symbol_table.constants.iter().find(|v| v.name == *name) {
+                                        Some(v) => {
+                                            if v.type_annot != "String" {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        None => {
+                                            let variable = symbol_table
+                                                .functions
+                                                .last()
+                                                .unwrap()
+                                                .variables
+                                                .iter()
+                                                .find(|v| v.name == *name);
+                                            match variable {
+                                                Some(v) => {
+                                                    if v.type_annot != "String" {
+                                                        panic!("Type mismatch");
+                                                    }
+                                                }
+                                                None => panic!("Variable not found"),
+                                            }
+                                        }
+                                    }
+                                }
+                                _ => panic!("Invalid value"),
+                            }
+                        }
+                    }
+                    _ => {
+                        let function = symbol_table.functions.iter().find(|f| f.name == name);
+                        match function {
+                            Some(f) => {
+                                for (i, arg) in args.iter().enumerate() {
+                                    match arg {
+                                        AbstractSyntaxTree::Int { .. } => {
+                                            if f.variables[i].type_annot != "Integer" {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        AbstractSyntaxTree::String { .. } => {
+                                            if f.variables[i].type_annot != "String" {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        AbstractSyntaxTree::UpName { .. } => {
+                                            if f.variables[i].type_annot != "Bool" {
+                                                panic!("Type mismatch");
+                                            }
+                                        }
+                                        AbstractSyntaxTree::Name { name } => match symbol_table
+                                            .constants
+                                            .iter()
+                                            .find(|v| v.name == *name)
+                                        {
+                                            Some(v) => {
+                                                if v.type_annot != f.variables[i].type_annot {
+                                                    panic!("Type mismatch");
+                                                }
+                                            }
+                                            None => {
+                                                let variable = symbol_table
+                                                    .functions
+                                                    .last()
+                                                    .unwrap()
+                                                    .variables
+                                                    .iter()
+                                                    .find(|v| v.name == *name);
+                                                match variable {
+                                                    Some(v) => {
+                                                        if v.type_annot != f.variables[i].type_annot
+                                                        {
+                                                            panic!("Type mismatch");
+                                                        }
+                                                    }
+                                                    None => panic!("Variable not found"),
+                                                }
+                                            }
+                                        },
+                                        AbstractSyntaxTree::Call { .. } => {
+                                            panic!("Cant handle nested function calls")
+                                        }
+                                        _ => panic!("Invalid value"),
                                     }
                                 }
                             }
+                            None => panic!("Function not found"),
                         }
-                        _ => panic!("Invalid value"),
                     }
+                },
+                some_value => {
+                    println!("{:?}", some_value);
+                    panic!("Invalid value")
                 }
-                AbstractSyntaxTree::Minus { left, right } => {
-                    match type_annot.as_str() {
-                        "Integer" => (),
-                        _ => panic!("Invalid type"),
-                    }
-                    match *left {
-                        AbstractSyntaxTree::Int { .. } => {
-                            if type_annot != "Integer" {
-                                panic!("Type mismatch");
-                            }
-                        }
-                        AbstractSyntaxTree::Name { name } => {
-                            match symbol_table.constants.iter().find(|v| v.name == name) {
-                                Some(v) => {
-                                    if v.type_annot != type_annot {
-                                        panic!("Type mismatch");
-                                    }
-                                }
-                                None => {
-                                    let variable = symbol_table
-                                        .functions
-                                        .last()
-                                        .unwrap()
-                                        .variables
-                                        .iter()
-                                        .find(|v| v.name == name);
-                                    match variable {
-                                        Some(v) => {
-                                            if v.type_annot != type_annot {
-                                                panic!("Type mismatch");
-                                            }
-                                        }
-                                        None => panic!("Variable not found"),
-                                    }
-                                }
-                            }
-                        }
-                        _ => panic!("Invalid value"),
-                    }
-                    match *right {
-                        AbstractSyntaxTree::Int { value: _ } => {
-                            if type_annot != "Integer" {
-                                panic!("Type mismatch");
-                            }
-                        }
-                        AbstractSyntaxTree::Name { name } => {
-                            match symbol_table.constants.iter().find(|v| v.name == name) {
-                                Some(v) => {
-                                    if v.type_annot != type_annot {
-                                        panic!("Type mismatch");
-                                    }
-                                }
-                                None => {
-                                    let variable = symbol_table
-                                        .functions
-                                        .last()
-                                        .unwrap()
-                                        .variables
-                                        .iter()
-                                        .find(|v| v.name == name);
-                                    match variable {
-                                        Some(v) => {
-                                            if v.type_annot != type_annot {
-                                                panic!("Type mismatch");
-                                            }
-                                        }
-                                        None => panic!("Variable not found"),
-                                    }
-                                }
-                            }
-                        }
-                        _ => panic!("Invalid value"),
-                    }
-                }
-                AbstractSyntaxTree::LtGt { left, right } => {
-                    match type_annot.as_str() {
-                        "String" => (),
-                        _ => panic!("Invalid type"),
-                    }
-                    match *left {
-                        AbstractSyntaxTree::String { .. } => {
-                            if type_annot != "String" {
-                                panic!("Type mismatch");
-                            }
-                        }
-                        AbstractSyntaxTree::Name { name } => {
-                            match symbol_table.constants.iter().find(|v| v.name == name) {
-                                Some(v) => {
-                                    if v.type_annot != type_annot {
-                                        panic!("Type mismatch");
-                                    }
-                                }
-                                None => {
-                                    let variable = symbol_table
-                                        .functions
-                                        .last()
-                                        .unwrap()
-                                        .variables
-                                        .iter()
-                                        .find(|v| v.name == name);
-                                    match variable {
-                                        Some(v) => {
-                                            if v.type_annot != type_annot {
-                                                panic!("Type mismatch");
-                                            }
-                                        }
-                                        None => panic!("Variable not found"),
-                                    }
-                                }
-                            }
-                        }
-                        _ => panic!("Invalid value"),
-                    }
-                    match *right {
-                        AbstractSyntaxTree::String { value: _ } => {
-                            if type_annot != "String" {
-                                panic!("Type mismatch");
-                            }
-                        }
-                        AbstractSyntaxTree::Name { name } => {
-                            match symbol_table.constants.iter().find(|v| v.name == name) {
-                                Some(v) => {
-                                    if v.type_annot != type_annot {
-                                        panic!("Type mismatch");
-                                    }
-                                }
-                                None => {
-                                    let variable = symbol_table
-                                        .functions
-                                        .last()
-                                        .unwrap()
-                                        .variables
-                                        .iter()
-                                        .find(|v| v.name == name);
-                                    match variable {
-                                        Some(v) => {
-                                            if v.type_annot != type_annot {
-                                                panic!("Type mismatch");
-                                            }
-                                        }
-                                        None => panic!("Variable not found"),
-                                    }
-                                }
-                            }
-                        }
-                        _ => panic!("Invalid value"),
-                    }
-                }
-                AbstractSyntaxTree::And { left, right }
-                | AbstractSyntaxTree::Or { left, right } => {
-                    match type_annot.as_str() {
-                        "Bool" => (),
-                        _ => panic!("Invalid type"),
-                    }
-                    match *left {
-                        AbstractSyntaxTree::UpName { name } => {
-                            if name != "True" && name != "False" {
-                                panic!("Invalid value");
-                            }
-                        }
-                        AbstractSyntaxTree::Name { name } => {
-                            match symbol_table.constants.iter().find(|v| v.name == name) {
-                                Some(v) => {
-                                    if v.type_annot != type_annot {
-                                        panic!("Type mismatch");
-                                    }
-                                }
-                                None => {
-                                    let variable = symbol_table
-                                        .functions
-                                        .last()
-                                        .unwrap()
-                                        .variables
-                                        .iter()
-                                        .find(|v| v.name == name);
-                                    match variable {
-                                        Some(v) => {
-                                            if v.type_annot != type_annot {
-                                                panic!("Type mismatch");
-                                            }
-                                        }
-                                        None => panic!("Variable not found"),
-                                    }
-                                }
-                            }
-                        }
-                        _ => panic!("Invalid value"),
-                    }
-                    match *right {
-                        AbstractSyntaxTree::UpName { name } => {
-                            if name != "True" && name != "False" {
-                                panic!("Invalid value");
-                            }
-                        }
-                        AbstractSyntaxTree::Name { name } => {
-                            match symbol_table.constants.iter().find(|v| v.name == name) {
-                                Some(v) => {
-                                    if v.type_annot != type_annot {
-                                        panic!("Type mismatch");
-                                    }
-                                }
-                                None => {
-                                    let variable = symbol_table
-                                        .functions
-                                        .last()
-                                        .unwrap()
-                                        .variables
-                                        .iter()
-                                        .find(|v| v.name == name);
-                                    match variable {
-                                        Some(v) => {
-                                            if v.type_annot != type_annot {
-                                                panic!("Type mismatch");
-                                            }
-                                        }
-                                        None => panic!("Variable not found"),
-                                    }
-                                }
-                            }
-                        }
-                        _ => panic!("Invalid value"),
-                    }
-                }
-                AbstractSyntaxTree::Not { value } => {
-                    match type_annot.as_str() {
-                        "Bool" => (),
-                        _ => panic!("Invalid type"),
-                    }
-                    match *value {
-                        AbstractSyntaxTree::UpName { name } => {
-                            if name != "True" && name != "False" {
-                                panic!("Invalid value");
-                            }
-                        }
-                        AbstractSyntaxTree::Name { name } => {
-                            match symbol_table.constants.iter().find(|v| v.name == name) {
-                                Some(v) => {
-                                    if v.type_annot != type_annot {
-                                        panic!("Type mismatch");
-                                    }
-                                }
-                                None => {
-                                    let variable = symbol_table
-                                        .functions
-                                        .last()
-                                        .unwrap()
-                                        .variables
-                                        .iter()
-                                        .find(|v| v.name == name);
-                                    match variable {
-                                        Some(v) => {
-                                            if v.type_annot != type_annot {
-                                                panic!("Type mismatch");
-                                            }
-                                        }
-                                        None => panic!("Variable not found"),
-                                    }
-                                }
-                            }
-                        }
-                        _ => panic!("Invalid value"),
-                    }
-                }
-                _ => panic!("Invalid value"),
             }
 
             let mut new_function = symbol_table.functions.pop().expect("Function not found");
@@ -645,29 +501,6 @@ pub fn analyze(ast: AbstractSyntaxTree, symbol_table: &mut SymbolTable) {
                 analyze(statement, symbol_table);
             }
         }
-        AbstractSyntaxTree::Plus { left, right } => {
-            analyze(*left, symbol_table);
-            analyze(*right, symbol_table);
-        }
-        AbstractSyntaxTree::Minus { left, right } => {
-            analyze(*left, symbol_table);
-            analyze(*right, symbol_table);
-        }
-        AbstractSyntaxTree::LtGt { left, right } => {
-            analyze(*left, symbol_table);
-            analyze(*right, symbol_table);
-        }
-        AbstractSyntaxTree::And { left, right } => {
-            analyze(*left, symbol_table);
-            analyze(*right, symbol_table);
-        }
-        AbstractSyntaxTree::Or { left, right } => {
-            analyze(*left, symbol_table);
-            analyze(*right, symbol_table);
-        }
-        AbstractSyntaxTree::Not { value } => {
-            analyze(*value, symbol_table);
-        }
         _ => {}
     }
 }
@@ -680,39 +513,18 @@ mod tests {
     use parse::parse;
     #[test]
     fn it_works() {
-        let contents = r#"const ctest: Integer = 5
-        const string_const_test: String = "constant"
-        const bool_const_test: Bool = True
-        
-        fn main() {
-          let stest: String = "hello"
-          let concat_test: String = stest <> " world"
-          let string_const_concat_test: String = stest <> string_const_test
-        
-          print_string(stest)
-          print_string(concat_test)
-          print_string(string_const_concat_test)
-        
-          let btest: Bool = True
-          let btest_and: Bool = btest && True
-          let btest_or: Bool = btest || False
-          let btest_not_1: Bool = !btest
-          let btest_not_2: Bool = !False
-          let bool_const_and_test: Bool = bool_const_test && True
-          print_bool(bool_const_and_test)
-          print_bool(btest_and)
-          print_bool(btest_or)
-          print_bool(btest_not_1)
-          print_bool(btest_not_2)
-        
-          let one: Integer = 1
-          let one_again: Integer = one
-          let five: Integer = one + 4
-          let itest: Integer = five - 4
-          let ctest_add: Integer = 1 + ctest
-          print_integer(itest)
-          print_integer(ctest_add)
-        }"#;
+        let contents = r#"
+            const ctest: Integer = 5
+    
+            fn main() {
+                let one: Integer = 1
+                let one_again: Integer = one
+                let five: Integer = add(one, 4)
+                let itest: Integer = sub(five, 4)
+                let ctest_add: Integer = add(1, ctest)
+                print_integer(itest)
+                print_integer(ctest_add)
+            }"#;
         let tokens = lex(contents.to_string());
         let document = parse(tokens);
         println!("Document:");

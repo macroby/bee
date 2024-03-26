@@ -34,29 +34,6 @@ pub enum AbstractSyntaxTree {
     UpName {
         name: String,
     },
-    Plus {
-        left: Box<AbstractSyntaxTree>,
-        right: Box<AbstractSyntaxTree>,
-    },
-    Minus {
-        left: Box<AbstractSyntaxTree>,
-        right: Box<AbstractSyntaxTree>,
-    },
-    LtGt {
-        left: Box<AbstractSyntaxTree>,
-        right: Box<AbstractSyntaxTree>,
-    },
-    And {
-        left: Box<AbstractSyntaxTree>,
-        right: Box<AbstractSyntaxTree>,
-    },
-    Or {
-        left: Box<AbstractSyntaxTree>,
-        right: Box<AbstractSyntaxTree>,
-    },
-    Not {
-        value: Box<AbstractSyntaxTree>,
-    },
     Call {
         name: String,
         args: Vec<AbstractSyntaxTree>,

@@ -9,15 +9,7 @@ pub enum Token {
     RightParen, // )
     LeftBrace,  // {
     RightBrace, // }
-    // Int Operators
-    Plus,
-    Minus,
-    // String Operators
-    LtGt, // '<>'
-    // Boolean Operators
-    And, // &&
-    Or,  // ||
-    Not, // !
+    Comma,
     // Other Punctuation
     Colon,
     Equal,

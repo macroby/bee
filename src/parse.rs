@@ -71,20 +71,39 @@ pub fn parse(tokens: Vec<Token>) -> Document {
 fn parse_expression(
     tokens: &mut std::iter::Peekable<std::slice::Iter<Token>>,
 ) -> AbstractSyntaxTree {
-    let mut left = match tokens.next() {
+    let ast = match tokens.next() {
         Some(Token::Int { value }) => AbstractSyntaxTree::Int {
             value: value.parse().unwrap(),
         },
         Some(Token::String { value }) => AbstractSyntaxTree::String {
             value: value.clone(),
         },
-        Some(Token::Not) => {
-            let value = parse_expression(tokens);
-            AbstractSyntaxTree::Not {
-                value: Box::new(value),
+        Some(Token::Name { name }) => {
+            //could be a function call or a variable
+            match tokens.peek() {
+                Some(Token::LeftParen) => {
+                    tokens.next();
+                    let mut args = Vec::new();
+                    while let Some(token) = tokens.peek() {
+                        match token {
+                            Token::RightParen => {
+                                tokens.next();
+                                break;
+                            }
+                            _ => {
+                                let arg = parse_expression(tokens);
+                                args.push(arg);
+                            }
+                        }
+                    }
+                    AbstractSyntaxTree::Call {
+                        name: name.clone(),
+                        args,
+                    }
+                }
+                _ => AbstractSyntaxTree::Name { name: name.clone() },
             }
         }
-        Some(Token::Name { name }) => AbstractSyntaxTree::Name { name: name.clone() },
         Some(Token::UpName { name }) => AbstractSyntaxTree::UpName { name: name.clone() },
         Some(Token::LeftParen) => parse_expression(tokens),
         Some(Token::LeftBrace) => {
@@ -101,64 +120,14 @@ fn parse_expression(
             }
             AbstractSyntaxTree::Block { statements }
         }
-        None => panic!("Unexpected end of input"),
+        Some(Token::Comma) => parse_expression(tokens),
         Some(token) => {
+            println!("{:?}", tokens);
             panic!("Unexpected token: {:?}", token)
         }
+        None => panic!("Unexpected end of input"),
     };
-    while let Some(token) = tokens.peek() {
-        match token {
-            Token::Plus => {
-                tokens.next();
-                let right = parse_expression(tokens);
-                left = AbstractSyntaxTree::Plus {
-                    left: Box::new(left),
-                    right: Box::new(right),
-                };
-            }
-            Token::Minus => {
-                tokens.next();
-                let right = parse_expression(tokens);
-                left = AbstractSyntaxTree::Minus {
-                    left: Box::new(left),
-                    right: Box::new(right),
-                };
-            }
-            Token::LtGt => {
-                tokens.next();
-                let right = parse_expression(tokens);
-                left = AbstractSyntaxTree::LtGt {
-                    left: Box::new(left),
-                    right: Box::new(right),
-                };
-            }
-            Token::And => {
-                tokens.next();
-                let right = parse_expression(tokens);
-                left = AbstractSyntaxTree::And {
-                    left: Box::new(left),
-                    right: Box::new(right),
-                };
-            }
-            Token::Or => {
-                tokens.next();
-                let right = parse_expression(tokens);
-                left = AbstractSyntaxTree::Or {
-                    left: Box::new(left),
-                    right: Box::new(right),
-                };
-            }
-            Token::Not => {
-                tokens.next();
-                let value = parse_expression(tokens);
-                left = AbstractSyntaxTree::Not {
-                    value: Box::new(value),
-                };
-            }
-            _ => break,
-        }
-    }
-    left
+    ast
 }
 
 fn parse_fn_body(
@@ -180,7 +149,14 @@ fn parse_fn_body(
                         args: vec![arg],
                     });
                 }
-                _ => panic!("Expected a left paren after name"),
+                Some(token) => {
+                    println!("{:?}", statements);
+                    panic!("Unexpected token: {:?}", token)
+                }
+                _ => {
+                    println!("{:?}", statements);
+                    panic!("Expected a left paren after name")
+                }
             },
             Token::Let => {
                 let name = match tokens.next() {
@@ -206,6 +182,7 @@ fn parse_fn_body(
                 });
             }
             _ => {
+                println!("{:?}", statements);
                 println!("{:?}", token);
                 panic!("Unexpected token")
             }

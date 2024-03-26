@@ -150,502 +150,6 @@ pub fn code_gen(
                     arg2: value,
                 });
             }
-            AbstractSyntaxTree::Minus { left, right } => {
-                match *left {
-                    AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode::LoadIntConst {
-                            arg1: 1,
-                            arg2: value as usize,
-                        });
-                    }
-                    AbstractSyntaxTree::Name { name } => {
-                        let var_index = symbol_table
-                            .functions
-                            .last()
-                            .unwrap()
-                            .variables
-                            .iter()
-                            .position(|v| v.name == name)
-                            .unwrap();
-                        op_codes.push(OpCode::Load {
-                            arg1: 1,
-                            arg2: var_index,
-                        });
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                match *right {
-                    AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode::LoadIntConst {
-                            arg1: 2,
-                            arg2: value as usize,
-                        });
-                    }
-                    AbstractSyntaxTree::Name { name } => {
-                        let var_index = symbol_table
-                            .functions
-                            .last()
-                            .unwrap()
-                            .variables
-                            .iter()
-                            .position(|v| v.name == name)
-                            .unwrap();
-                        op_codes.push(OpCode::Load {
-                            arg1: 2,
-                            arg2: var_index,
-                        });
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                op_codes.push(OpCode::Sub {
-                    arg1: 3,
-                    arg2: 1,
-                    arg3: 2,
-                });
-
-                let target_index = symbol_table
-                    .functions
-                    .last()
-                    .unwrap()
-                    .variables
-                    .iter()
-                    .position(|v| v.name == name.to_owned())
-                    .unwrap();
-
-                op_codes.push(OpCode::Store {
-                    arg1: target_index,
-                    arg2: 3,
-                });
-            }
-            AbstractSyntaxTree::Plus { left, right } => {
-                match *left {
-                    AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode::LoadIntConst {
-                            arg1: 1,
-                            arg2: value as usize,
-                        });
-                    }
-                    AbstractSyntaxTree::Name { name } => {
-                        let var_index = symbol_table
-                            .functions
-                            .last()
-                            .unwrap()
-                            .variables
-                            .iter()
-                            .position(|v| v.name == name)
-                            .unwrap();
-                        op_codes.push(OpCode::Load {
-                            arg1: 1,
-                            arg2: var_index,
-                        });
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                match *right {
-                    AbstractSyntaxTree::Int { value } => {
-                        op_codes.push(OpCode::LoadIntConst {
-                            arg1: 2,
-                            arg2: value as usize,
-                        });
-                    }
-                    AbstractSyntaxTree::Name { name } => {
-                        match symbol_table.constants.iter().find(|v| v.name == name) {
-                            Some(constant) => {
-                                op_codes.push(OpCode::LoadIntConst {
-                                    arg1: 2,
-                                    arg2: constant.value.parse().unwrap(),
-                                });
-                            }
-                            None => {
-                                let var_index = symbol_table
-                                    .functions
-                                    .last()
-                                    .unwrap()
-                                    .variables
-                                    .iter()
-                                    .position(|v| v.name == name)
-                                    .unwrap();
-                                op_codes.push(OpCode::Load {
-                                    arg1: 2,
-                                    arg2: var_index,
-                                });
-                            }
-                        }
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                op_codes.push(OpCode::Add {
-                    arg1: 3,
-                    arg2: 1,
-                    arg3: 2,
-                });
-
-                let target_index = symbol_table
-                    .functions
-                    .last()
-                    .unwrap()
-                    .variables
-                    .iter()
-                    .position(|v| v.name == name.to_owned())
-                    .unwrap();
-
-                op_codes.push(OpCode::Store {
-                    arg1: target_index,
-                    arg2: 3,
-                });
-            }
-            AbstractSyntaxTree::And { left, right } => {
-                match *left {
-                    AbstractSyntaxTree::UpName { name } => {
-                        if name == "True" {
-                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 1 });
-                        } else if name == "False" {
-                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 0 });
-                        } else {
-                            panic!("Invalid value");
-                        }
-                    }
-                    AbstractSyntaxTree::Name { name } => {
-                        match symbol_table.constants.iter().find(|v| v.name == name) {
-                            Some(constant) => {
-                                op_codes.push(OpCode::LoadIntConst {
-                                    arg1: 1,
-                                    arg2: constant.value.parse().unwrap(),
-                                });
-                            }
-                            None => {
-                                let var_index = symbol_table
-                                    .functions
-                                    .last()
-                                    .unwrap()
-                                    .variables
-                                    .iter()
-                                    .position(|v| v.name == name)
-                                    .unwrap();
-                                op_codes.push(OpCode::Load {
-                                    arg1: 1,
-                                    arg2: var_index,
-                                });
-                            }
-                        }
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                match *right {
-                    AbstractSyntaxTree::UpName { name } => {
-                        if name == "True" {
-                            op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 1 });
-                        } else if name == "False" {
-                            op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 0 });
-                        } else {
-                            panic!("Invalid value");
-                        }
-                    }
-                    AbstractSyntaxTree::Name { name } => {
-                        match symbol_table.constants.iter().find(|v| v.name == name) {
-                            Some(constant) => {
-                                match constant.value.as_str() {
-                                    "True" => {
-                                        op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 1 });
-                                    }
-                                    "False" => {
-                                        op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 0 });
-                                    }
-                                    _ => panic!("Invalid value"),
-                                };
-                            }
-                            None => {
-                                let var_index = symbol_table
-                                    .functions
-                                    .last()
-                                    .unwrap()
-                                    .variables
-                                    .iter()
-                                    .position(|v| v.name == name)
-                                    .unwrap();
-                                op_codes.push(OpCode::Load {
-                                    arg1: 2,
-                                    arg2: var_index,
-                                });
-                            }
-                        }
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                op_codes.push(OpCode::And {
-                    arg1: 3,
-                    arg2: 1,
-                    arg3: 2,
-                });
-
-                let target_index = symbol_table
-                    .functions
-                    .last()
-                    .unwrap()
-                    .variables
-                    .iter()
-                    .position(|v| v.name == name.to_owned())
-                    .unwrap();
-
-                op_codes.push(OpCode::Store {
-                    arg1: target_index,
-                    arg2: 3,
-                });
-            }
-            AbstractSyntaxTree::Or { left, right } => {
-                match *left {
-                    AbstractSyntaxTree::UpName { name } => {
-                        if name == "True" {
-                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 1 });
-                        } else if name == "False" {
-                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 0 });
-                        } else {
-                            panic!("Invalid value");
-                        }
-                    }
-                    AbstractSyntaxTree::Name { name: var_name } => {
-                        match symbol_table.constants.iter().find(|v| v.name == var_name) {
-                            Some(constant) => {
-                                match constant.value.as_str() {
-                                    "True" => {
-                                        op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 1 });
-                                    }
-                                    "False" => {
-                                        op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 0 });
-                                    }
-                                    _ => panic!("Invalid value"),
-                                };
-                            }
-                            None => {
-                                let var_index = symbol_table
-                                    .functions
-                                    .last()
-                                    .unwrap()
-                                    .variables
-                                    .iter()
-                                    .position(|v| v.name == var_name)
-                                    .unwrap();
-                                op_codes.push(OpCode::Load {
-                                    arg1: 1,
-                                    arg2: var_index,
-                                });
-                            }
-                        }
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                match *right {
-                    AbstractSyntaxTree::UpName { name } => {
-                        if name == "True" {
-                            op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 1 });
-                        } else if name == "False" {
-                            op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 0 });
-                        } else {
-                            panic!("Invalid value");
-                        }
-                    }
-                    AbstractSyntaxTree::Name { name } => {
-                        match symbol_table.constants.iter().find(|v| v.name == name) {
-                            Some(constant) => {
-                                match constant.value.as_str() {
-                                    "True" => {
-                                        op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 1 });
-                                    }
-                                    "False" => {
-                                        op_codes.push(OpCode::LoadIntConst { arg1: 2, arg2: 0 });
-                                    }
-                                    _ => panic!("Invalid value"),
-                                };
-                            }
-                            None => {
-                                let var_index = symbol_table
-                                    .functions
-                                    .last()
-                                    .unwrap()
-                                    .variables
-                                    .iter()
-                                    .position(|v| v.name == name)
-                                    .unwrap();
-                                op_codes.push(OpCode::Load {
-                                    arg1: 2,
-                                    arg2: var_index,
-                                });
-                            }
-                        }
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                op_codes.push(OpCode::Or {
-                    arg1: 3,
-                    arg2: 1,
-                    arg3: 2,
-                });
-
-                let target_index = symbol_table
-                    .functions
-                    .last()
-                    .unwrap()
-                    .variables
-                    .iter()
-                    .position(|v| v.name == name.to_owned())
-                    .unwrap();
-
-                op_codes.push(OpCode::Store {
-                    arg1: target_index,
-                    arg2: 3,
-                });
-            }
-            AbstractSyntaxTree::Not { value } => {
-                match *value {
-                    AbstractSyntaxTree::UpName { name } => {
-                        if name == "True" {
-                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 1 });
-                        } else if name == "False" {
-                            op_codes.push(OpCode::LoadIntConst { arg1: 1, arg2: 0 });
-                        } else {
-                            panic!("Invalid value");
-                        }
-                    }
-                    AbstractSyntaxTree::Name { name } => {
-                        match symbol_table.constants.iter().find(|v| v.name == name) {
-                            Some(constant) => {
-                                op_codes.push(OpCode::LoadIntConst {
-                                    arg1: 1,
-                                    arg2: constant.value.parse().unwrap(),
-                                });
-                            }
-                            None => {
-                                let var_index = symbol_table
-                                    .functions
-                                    .last()
-                                    .unwrap()
-                                    .variables
-                                    .iter()
-                                    .position(|v| v.name == name)
-                                    .unwrap();
-                                op_codes.push(OpCode::Load {
-                                    arg1: 1,
-                                    arg2: var_index,
-                                });
-                            }
-                        }
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                op_codes.push(OpCode::Not { value: 1 });
-
-                let target_index = symbol_table
-                    .functions
-                    .last()
-                    .unwrap()
-                    .variables
-                    .iter()
-                    .position(|v| v.name == name.to_owned())
-                    .unwrap();
-
-                op_codes.push(OpCode::Store {
-                    arg1: target_index,
-                    arg2: 1,
-                });
-            }
-            AbstractSyntaxTree::LtGt { left, right } => {
-                match *left {
-                    AbstractSyntaxTree::String { value } => {
-                        op_codes.push(OpCode::LoadStringConst {
-                            arg1: 1,
-                            arg2: value.into(),
-                        });
-                    }
-                    AbstractSyntaxTree::Name { name } => {
-                        match symbol_table.constants.iter().find(|v| v.name == name) {
-                            Some(constant) => {
-                                op_codes.push(OpCode::LoadStringConst {
-                                    arg1: 1,
-                                    arg2: constant.value.clone().into_boxed_str(),
-                                });
-                            }
-                            None => {
-                                let var_index = symbol_table
-                                    .functions
-                                    .last()
-                                    .unwrap()
-                                    .variables
-                                    .iter()
-                                    .position(|v| v.name == name)
-                                    .unwrap();
-                                op_codes.push(OpCode::Load {
-                                    arg1: 1,
-                                    arg2: var_index,
-                                });
-                            }
-                        }
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                match *right {
-                    AbstractSyntaxTree::String { value } => {
-                        op_codes.push(OpCode::LoadStringConst {
-                            arg1: 2,
-                            arg2: value.into(),
-                        });
-                    }
-                    AbstractSyntaxTree::Name { name } => {
-                        match symbol_table.constants.iter().find(|v| v.name == name) {
-                            Some(constant) => {
-                                op_codes.push(OpCode::LoadStringConst {
-                                    arg1: 2,
-                                    arg2: constant.value.clone().into_boxed_str(),
-                                });
-                            }
-                            None => {
-                                let var_index = symbol_table
-                                    .functions
-                                    .last()
-                                    .unwrap()
-                                    .variables
-                                    .iter()
-                                    .position(|v| v.name == name)
-                                    .unwrap();
-                                op_codes.push(OpCode::Load {
-                                    arg1: 2,
-                                    arg2: var_index,
-                                });
-                            }
-                        }
-                    }
-                    _ => panic!("Invalid value"),
-                }
-
-                op_codes.push(OpCode::Concat {
-                    arg1: 3,
-                    arg2: 1,
-                    arg3: 2,
-                });
-
-                let target_index = symbol_table
-                    .functions
-                    .last()
-                    .unwrap()
-                    .variables
-                    .iter()
-                    .position(|v| v.name == name.to_owned())
-                    .unwrap();
-
-                op_codes.push(OpCode::Store {
-                    arg1: target_index,
-                    arg2: 3,
-                });
-            }
             AbstractSyntaxTree::String { value } => {
                 let target_index = symbol_table
                     .functions
@@ -659,6 +163,163 @@ pub fn code_gen(
                     arg1: target_index,
                     arg2: value.into(),
                 });
+            }
+            AbstractSyntaxTree::Call {
+                name: calling_fn_name,
+                args,
+            } => {
+                // if builtin function then generate code for it, if not then panic
+                match calling_fn_name.as_str() {
+                    "add" => {
+                        let arg1 = match args.first().unwrap() {
+                            AbstractSyntaxTree::Int { value } => *value,
+                            AbstractSyntaxTree::Name { name } => {
+                                match symbol_table.constants.iter().find(|v| v.name == *name) {
+                                    Some(constant) => {
+                                        let constant_value = constant.value.parse().unwrap();
+                                        op_codes.push(OpCode::LoadIntConst {
+                                            arg1: 1,
+                                            arg2: constant_value,
+                                        });
+                                        1
+                                    }
+                                    None => {
+                                        let var_index = symbol_table
+                                            .functions
+                                            .last()
+                                            .unwrap()
+                                            .variables
+                                            .iter()
+                                            .position(|v| v.name == *name)
+                                            .unwrap();
+                                        op_codes.push(OpCode::Load {
+                                            arg1: 1,
+                                            arg2: var_index,
+                                        });
+                                        1
+                                    }
+                                }
+                            }
+                            _ => panic!("Invalid value"),
+                        };
+                        let arg2 = match args.last().unwrap() {
+                            AbstractSyntaxTree::Int { value } => *value,
+                            AbstractSyntaxTree::Name { name } => {
+                                match symbol_table.constants.iter().find(|v| v.name == *name) {
+                                    Some(constant) => {
+                                        let constant_value = constant.value.parse().unwrap();
+                                        op_codes.push(OpCode::LoadIntConst {
+                                            arg1: 2,
+                                            arg2: constant_value,
+                                        });
+                                        2
+                                    }
+                                    None => {
+                                        let var_index = symbol_table
+                                            .functions
+                                            .last()
+                                            .unwrap()
+                                            .variables
+                                            .iter()
+                                            .position(|v| v.name == *name)
+                                            .unwrap();
+                                        op_codes.push(OpCode::Load {
+                                            arg1: 2,
+                                            arg2: var_index,
+                                        });
+                                        2
+                                    }
+                                }
+                            }
+                            _ => panic!("Invalid value"),
+                        };
+                        let target_index = symbol_table
+                            .functions
+                            .last()
+                            .unwrap()
+                            .variables
+                            .iter()
+                            .position(|v| v.name == name.to_owned())
+                            .unwrap();
+                        op_codes.push(OpCode::Add {
+                            arg1: 3,
+                            arg2: arg1,
+                            arg3: arg2,
+                        });
+                        op_codes.push(OpCode::Store {
+                            arg1: target_index,
+                            arg2: 3,
+                        });
+                    }
+                    "sub" => {
+                        let arg1 = match args.first().unwrap() {
+                            AbstractSyntaxTree::Int { value } => *value,
+                            AbstractSyntaxTree::Name { name } => {
+                                match symbol_table.constants.iter().find(|v| v.name == *name) {
+                                    Some(constant) => constant.value.parse().unwrap(),
+                                    None => {
+                                        let var_index = symbol_table
+                                            .functions
+                                            .last()
+                                            .unwrap()
+                                            .variables
+                                            .iter()
+                                            .position(|v| v.name == *name)
+                                            .unwrap();
+                                        op_codes.push(OpCode::Load {
+                                            arg1: 1,
+                                            arg2: var_index,
+                                        });
+                                        1
+                                    }
+                                }
+                            }
+                            _ => panic!("Invalid value"),
+                        };
+                        let arg2 = match args.last().unwrap() {
+                            AbstractSyntaxTree::Int { value } => *value,
+                            AbstractSyntaxTree::Name { name } => {
+                                match symbol_table.constants.iter().find(|v| v.name == *name) {
+                                    Some(constant) => constant.value.parse().unwrap(),
+                                    None => {
+                                        let var_index = symbol_table
+                                            .functions
+                                            .last()
+                                            .unwrap()
+                                            .variables
+                                            .iter()
+                                            .position(|v| v.name == *name)
+                                            .unwrap();
+                                        op_codes.push(OpCode::Load {
+                                            arg1: 2,
+                                            arg2: var_index,
+                                        });
+                                        2
+                                    }
+                                }
+                            }
+                            _ => panic!("Invalid value"),
+                        };
+                        let target_index = symbol_table
+                            .functions
+                            .last()
+                            .unwrap()
+                            .variables
+                            .iter()
+                            .position(|v| v.name == name.to_owned())
+                            .unwrap();
+                        op_codes.push(OpCode::Sub {
+                            arg1: 3,
+                            arg2: arg1,
+                            arg3: arg2,
+                        });
+                        op_codes.push(OpCode::Store {
+                            arg1: target_index,
+                            arg2: 3,
+                        });
+                    }
+                    _ => panic!("Invalid function name"),
+                }
             }
             value => panic!("Invalid value: {:?}", value),
         },
